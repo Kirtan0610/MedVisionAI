@@ -24,7 +24,7 @@ function Login() {
       setLoading(true);
       setError("");
 
-      const res = await API.post("/auth/login", form);
+      const res = await API.post("api/auth/login", form);
 
       login(res.data.token);
       navigate("/dashboard");
@@ -34,7 +34,6 @@ function Login() {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFF5F4] px-4">
       <div className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-md border">
