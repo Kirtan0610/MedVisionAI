@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 function Login() {
@@ -12,47 +12,88 @@ function Login() {
     password: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async () => {
     try {
+      setLoading(true);
+      setError("");
+
       const res = await API.post("/auth/login", form);
+
       login(res.data.token);
       navigate("/dashboard");
     } catch (err) {
-      alert("Invalid credentials");
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center mt-20">
-      <div className="bg-white p-8 rounded shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-[#FFF5F4] px-4">
+      <div className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-md border">
+        {/* Brand */}
+        <h2 className="text-3xl font-bold text-center text-[#FA8072] mb-2">
+          Med Vision AI
+        </h2>
+        <p className="text-gray-500 text-center mb-6 text-sm">
+          AI-powered medical insights platform
+        </p>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 text-red-600 p-2 rounded mb-4 text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Email */}
         <input
           name="email"
           type="email"
-          placeholder="Email"
-          className="w-full p-2 border mb-3 rounded"
+          placeholder="Email address"
+          className="w-full p-3 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#FA8072]"
           onChange={handleChange}
         />
 
+        {/* Password */}
         <input
           name="password"
           type="password"
           placeholder="Password"
-          className="w-full p-2 border mb-3 rounded"
+          className="w-full p-3 border rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-[#FA8072]"
           onChange={handleChange}
         />
 
+        {/* Login Button */}
         <button
           onClick={handleSubmit}
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          disabled={loading}
+          className={`w-full p-3 rounded-lg text-white font-medium transition ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#FA8072] hover:bg-[#E06666]"
+          }`}
         >
-          Login
+          {loading ? "Signing in..." : "Login"}
         </button>
+
+        {/* Register Link */}
+        <p className="text-sm text-gray-500 text-center mt-6">
+          Don’t have an account?{" "}
+          <Link
+            to="/register"
+            className="text-[#FA8072] font-medium hover:underline"
+          >
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );
