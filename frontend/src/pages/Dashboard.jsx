@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 
 function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -27,14 +26,6 @@ function Dashboard() {
             Your personal health AI is ready to analyze.
           </p>
         </div>
-
-        <Link
-          to="/upload"
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#FA8072] text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:bg-[#e06c5f] transition-all active:scale-95"
-        >
-          <FileUp size={20} />
-          Upload New Report
-        </Link>
       </header>
 
       {/* 2. Stats */}
