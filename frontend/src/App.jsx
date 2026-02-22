@@ -8,7 +8,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ReportDetails from "./pages/ReportDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layout/MainLayout";
-
+import Landing from "./pages/Landing";
 function App() {
   return (
     <Router>
