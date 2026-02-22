@@ -24,7 +24,7 @@ function Login() {
       setLoading(true);
       setError("");
 
-      const res = await API.post("api/auth/login", form);
+      const res = await API.post("/auth/login", form);
 
       login(res.data.token);
       navigate("/dashboard");
