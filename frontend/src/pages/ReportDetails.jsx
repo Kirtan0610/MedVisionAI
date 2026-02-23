@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import API from "../services/api";
 import { AuthContext } from "../context/AuthContext";
@@ -106,6 +106,7 @@ export default function ReportDetails() {
   const { user } = useContext(AuthContext);
   const { dark } = useTheme();
   const navigate = useNavigate();
+  const printRef = useRef(null);
 
   const [report, setReport] = useState(null);
   const [parsed, setParsed] = useState(null);
@@ -114,6 +115,37 @@ export default function ReportDetails() {
   const [deleting, setDeleting] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [tab, setTab] = useState("overview");
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalyzeLang, setReanalyzeLang] = useState("en");
+  const [sharing, setSharing] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleReanalyze = async () => {
+    setReanalyzing(true);
+    try {
+      const res = await API.post(`/reports/${id}/reanalyze`, { language: reanalyzeLang },
+        { headers: { Authorization: `Bearer ${user.token}` } });
+      setReport(res.data);
+      try { setParsed(JSON.parse(res.data.aiResult)); } catch {}
+    } catch (e) { console.error(e); }
+    finally { setReanalyzing(false); }
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const res = await API.post(`/reports/${id}/share`, {},
+        { headers: { Authorization: `Bearer ${user.token}` } });
+      const link = `${window.location.origin}/shared/${res.data.shareToken}`;
+      setShareLink(link);
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch { } finally { setSharing(false); }
+  };
+
+  const handlePrint = () => window.print();
 
   useEffect(() => {
     if (!user?.token) return;
@@ -137,6 +169,7 @@ export default function ReportDetails() {
   const tabWrap = dark ? "bg-slate-900 border-slate-800" : "bg-slate-100 border-slate-200";
   const thBg    = dark ? "bg-slate-800 text-slate-500" : "bg-slate-50 text-slate-400";
   const hdrTxt  = dark ? "text-slate-200" : "text-slate-800";
+  const btnDef  = dark ? "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200" : "border-slate-200 text-slate-600 hover:bg-slate-50";
 
   if (loading) return (
     <div className="max-w-4xl mx-auto space-y-3">
@@ -165,20 +198,56 @@ export default function ReportDetails() {
   return (
     <div className="max-w-4xl mx-auto" style={{ fontFamily:"'Inter',sans-serif" }}>
 
-      {/* Back & Delete */}
-      <div className="flex items-center gap-2.5 mb-5 animate-fadeInDown">
+      {/* Back, Actions, Delete */}
+      <div className="flex flex-wrap items-center gap-2 mb-5 animate-fadeInDown">
         <Link to="/reports"
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200
-            ${dark ? "border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-          ← Back to Reports
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 ${btnDef}`}>
+          ← Back
         </Link>
-        <div className="flex-1" />
-        <button onClick={() => setShowDelete(true)}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200
-            ${dark ? "border-red-500/25 bg-red-500/8 text-red-400 hover:bg-red-500/15" : "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"}`}>
-          Delete
-        </button>
+
+        <div className="flex flex-wrap gap-2 ml-auto">
+          {/* Language + Re-analyze */}
+          <div className={`flex rounded-lg border overflow-hidden text-[0.65rem] font-bold ${dark ? "border-slate-700" : "border-slate-200"}`}>
+            {[["en","EN"],["hi","हिं"]].map(([v,l]) => (
+              <button key={v} onClick={() => setReanalyzeLang(v)}
+                className={`px-2.5 py-2 transition-all ${reanalyzeLang===v ? "bg-blue-600 text-white" : dark ? "bg-slate-800 text-slate-400" : "bg-white text-slate-500"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <button onClick={handleReanalyze} disabled={reanalyzing}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 ${btnDef} disabled:opacity-40`}>
+            {reanalyzing ? <><span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full spinner" />Analyzing…</> : "⟳ Re-analyze"}
+          </button>
+
+          {/* Share */}
+          <button onClick={handleShare} disabled={sharing}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 ${btnDef} disabled:opacity-40`}>
+            {sharing ? "Sharing…" : copied ? "✓ Copied!" : "↗ Share"}
+          </button>
+
+          {/* PDF Export */}
+          <button onClick={handlePrint}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 ${btnDef}`}>
+            ⬇ Export PDF
+          </button>
+
+          {/* Delete */}
+          <button onClick={() => setShowDelete(true)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all duration-200
+              ${dark ? "border-red-500/25 bg-red-500/8 text-red-400 hover:bg-red-500/15" : "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"}`}>
+            Delete
+          </button>
+        </div>
       </div>
+      {/* Share link banner */}
+      {shareLink && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg border mb-3 text-xs animate-slideInLeft ${dark ? "bg-emerald-500/8 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
+          <span className="text-emerald-400 font-bold shrink-0">✓</span>
+          <span className={`truncate flex-1 font-mono ${dark ? "text-slate-400" : "text-slate-500"}`}>{shareLink}</span>
+          <span className={`shrink-0 font-semibold ${dark ? "text-emerald-400" : "text-emerald-600"}`}>{copied ? "Copied!" : ""}</span>
+        </div>
+      )}
 
       {/* Hero */}
       <div className={`rounded-xl border p-5 sm:p-7 mb-4 animate-fadeInUp ${card}`}>

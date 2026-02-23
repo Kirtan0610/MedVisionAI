@@ -90,6 +90,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (user?.token) {
@@ -102,8 +103,10 @@ export default function ReportsPage() {
   const counts = { All: reports.length, Low: 0, Medium: 0, High: 0 };
   reports.forEach(r => { try { const p = JSON.parse(r.aiResult); if (counts[p.riskLevel] !== undefined) counts[p.riskLevel]++; } catch {} });
 
-  const filtered = filter === "All" ? reports : reports.filter(r => {
-    try { return JSON.parse(r.aiResult).riskLevel === filter; } catch { return false; }
+  const filtered = reports.filter(r => {
+    const matchesFilter = filter === "All" || (() => { try { return JSON.parse(r.aiResult).riskLevel === filter; } catch { return false; } })();
+    const matchesSearch = search === "" || r.originalFileName.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
   });
 
   const card    = dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
@@ -144,6 +147,18 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {/* Search */}
+      {!loading && reports.length > 0 && (
+        <div className="relative mb-4 animate-fadeInUp">
+          <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm ${muted}`}>🔍</span>
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search reports by filename…"
+            className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-blue-500/20
+              ${dark ? "bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-400"}`}
+          />
+        </div>
+      )}
       {/* Filter */}
       {!loading && reports.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-5 animate-fadeInUp delay-100">
