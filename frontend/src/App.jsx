@@ -11,6 +11,7 @@ import ToolsPage    from "./pages/ToolsPage";
 import SharedReport from "./pages/SharedReport";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout   from "./layout/MainLayout";
+import NearbyPage   from "./pages/NearbyPage";
 import Landing      from "./pages/Landing";
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="/report/:id"   element={<ReportDetails />} />
           <Route path="/chat"         element={<ChatPage />} />
           <Route path="/tools"        element={<ToolsPage />} />
+          <Route path="/nearby"       element={<NearbyPage />} />
           <Route path="/profile"      element={<ProfilePage />} />
         </Route>
       </Routes>

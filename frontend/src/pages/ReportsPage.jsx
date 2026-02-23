@@ -29,7 +29,7 @@ function ReportCard({ r, dark, delay }) {
     ? "bg-slate-900 border-slate-800 hover:border-slate-700"
     : "bg-white border-slate-200 hover:border-slate-300";
   const muted = dark ? "text-slate-400" : "text-slate-500";
-  const sub   = dark ? "text-slate-600" : "text-slate-400";
+  const sub   = dark ? "text-slate-400" : "text-slate-500";
   const healthColor = health === "Good" ? "text-emerald-500" : health === "Fair" ? "text-amber-500" : "text-red-400";
 
   return (

@@ -82,7 +82,7 @@ export default function ProfilePage() {
   const card    = dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
   const muted   = dark ? "text-slate-400" : "text-slate-500";
   const label   = dark ? "text-slate-400" : "text-slate-500";
-  const sub     = dark ? "text-slate-600" : "text-slate-400";
+  const sub     = dark ? "text-slate-400" : "text-slate-500";
   const input   = dark ? "bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500" : "bg-white border-slate-300 text-slate-900 focus:border-blue-500";
   const tabWrap = dark ? "bg-slate-900 border-slate-800" : "bg-slate-100 border-slate-200";
   const tabAct  = "bg-blue-600 text-white";

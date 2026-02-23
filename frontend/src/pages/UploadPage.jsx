@@ -61,7 +61,7 @@ export default function UploadPage() {
 
   const card  = dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
   const muted = dark ? "text-slate-400" : "text-slate-500";
-  const sub   = dark ? "text-slate-600" : "text-slate-400";
+  const sub   = dark ? "text-slate-400" : "text-slate-500";
   const dz    = dark
     ? `border-slate-700 ${dragOver ? "border-blue-500 bg-blue-600/5" : "hover:border-slate-600"}`
     : `border-slate-300 ${dragOver ? "border-blue-500 bg-blue-50" : "hover:border-slate-400"}`;

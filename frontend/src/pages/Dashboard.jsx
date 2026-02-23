@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const card   = dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
   const muted  = dark ? "text-slate-400" : "text-slate-500";
-  const sub    = dark ? "text-slate-600" : "text-slate-400";
+  const sub    = dark ? "text-slate-400" : "text-slate-500";
   const step   = dark ? "bg-slate-800" : "bg-slate-50 border border-slate-200";
   const rowHov = dark ? "border-slate-800 bg-slate-800/40 hover:bg-slate-800 hover:border-slate-700"
                       : "border-slate-100 bg-slate-50 hover:border-slate-300";

@@ -22,7 +22,7 @@ function BMICalculator({ dark }) {
       <div className="flex items-center gap-2.5 mb-5">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${dark ? "bg-slate-800" : "bg-blue-50"}`}>⚖️</div>
         <div>
-          <h2 className="font-semibold text-sm" style={{ fontFamily:"'Sora',sans-serif" }}>BMI Calculator</h2>
+          <h2 className={`font-semibold text-sm ${dark ? "text-slate-100" : "text-slate-800"}`} style={{ fontFamily:"'Sora',sans-serif" }}>BMI Calculator</h2>
           <p className={`text-xs ${muted}`}>Body Mass Index</p>
         </div>
       </div>
@@ -121,7 +121,7 @@ function NormalRanges({ dark }) {
     <div className={`rounded-xl border p-5 sm:p-6 ${card}`}>
       <div className="flex items-center gap-2.5 mb-5">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${dark ? "bg-slate-800" : "bg-blue-50"}`}>📋</div>
-        <h2 className="font-semibold text-sm" style={{ fontFamily:"'Sora',sans-serif" }}>Normal Reference Ranges</h2>
+        <h2 className={`font-semibold text-sm ${dark ? "text-slate-100" : "text-slate-800"}`} style={{ fontFamily:"'Sora',sans-serif" }}>Normal Reference Ranges</h2>
       </div>
       {/* Category tabs */}
       <div className="flex flex-wrap gap-1.5 mb-4">
@@ -200,7 +200,7 @@ function SymptomChecker({ dark }) {
         <div className="flex items-center gap-2.5">
           <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${dark ? "bg-slate-800" : "bg-blue-50"}`}>🔍</div>
           <div>
-            <h2 className="font-semibold text-sm" style={{ fontFamily:"'Sora',sans-serif" }}>Symptom Checker</h2>
+            <h2 className={`font-semibold text-sm ${dark ? "text-slate-100" : "text-slate-800"}`} style={{ fontFamily:"'Sora',sans-serif" }}>Symptom Checker</h2>
             <p className={`text-xs ${muted}`}>Select symptoms to see possible conditions</p>
           </div>
         </div>

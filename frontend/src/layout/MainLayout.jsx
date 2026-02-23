@@ -10,6 +10,7 @@ const NAV = [
   { path:"/reports",   label:"My Reports",     icon:"≡" },
   { path:"/chat",      label:"Ask Dr. AI",     icon:"◈" },
   { path:"/tools",     label:"Health Tools",   icon:"⚙" },
+  { path:"/nearby",    label:"Nearby Places",  icon:"📍" },
   { path:"/profile",   label:"Profile",        icon:"◎" },
 ];
 

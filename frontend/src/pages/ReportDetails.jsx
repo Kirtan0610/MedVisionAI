@@ -19,7 +19,7 @@ function RiskRing({ score = 0, riskLevel = "Low", dark }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="font-bold text-2xl leading-none" style={{ fontFamily:"'Sora',sans-serif", color }}>{score}</span>
-        <span className={`text-[0.55rem] font-semibold uppercase tracking-wider mt-0.5 ${dark ? "text-slate-600" : "text-slate-400"}`}>Risk Score</span>
+        <span className={`text-[0.55rem] font-semibold uppercase tracking-wider mt-0.5 ${dark ? "text-slate-400" : "text-slate-400"}`}>Risk Score</span>
       </div>
     </div>
   );
@@ -164,7 +164,7 @@ export default function ReportDetails() {
 
   const card    = dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
   const muted   = dark ? "text-slate-400" : "text-slate-500";
-  const sub     = dark ? "text-slate-600" : "text-slate-300";
+  const sub     = dark ? "text-slate-400" : "text-slate-500";
   const divider = dark ? "border-slate-800" : "border-slate-100";
   const tabWrap = dark ? "bg-slate-900 border-slate-800" : "bg-slate-100 border-slate-200";
   const thBg    = dark ? "bg-slate-800 text-slate-500" : "bg-slate-50 text-slate-400";

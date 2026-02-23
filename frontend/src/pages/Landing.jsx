@@ -115,7 +115,7 @@ export default function Landing() {
             <div key={i} className={`p-5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 animate-fadeInUp ${card}`}
               style={{ animationDelay: `${i * 70}ms` }}>
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl mb-3 ${dark ? "bg-slate-800" : "bg-blue-50"}`}>{f.icon}</div>
-              <h3 className="font-semibold text-sm mb-1">{f.title}</h3>
+              <h3 className={`font-semibold text-sm mb-1 ${dark ? "text-slate-100" : "text-slate-800"}`}>{f.title}</h3>
               <p className={`text-xs leading-relaxed ${muted}`}>{f.desc}</p>
             </div>
           ))}
@@ -139,7 +139,7 @@ export default function Landing() {
                 {s.icon}
                 <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-blue-600 text-white text-[0.6rem] font-black flex items-center justify-center">{s.n}</span>
               </div>
-              <h3 className="font-semibold text-sm mb-1.5">{s.t}</h3>
+              <h3 className={`font-semibold text-sm mb-1.5 ${dark ? "text-slate-100" : "text-slate-800"}`}>{s.t}</h3>
               <p className={`text-xs leading-relaxed ${muted}`}>{s.d}</p>
             </div>
           ))}
