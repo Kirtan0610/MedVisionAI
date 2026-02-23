@@ -9,6 +9,10 @@ const reportSchema = new mongoose.Schema(
     originalFileName: String,
     extractedText: String,
     aiResult: String,
+    isStructured: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
