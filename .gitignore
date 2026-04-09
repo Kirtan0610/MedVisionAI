@@ -6,3 +6,12 @@ dist
 build
 uploads
 docs/
+
+# Privacy & Documentation
+*.pdf
+*.docx
+Project_Documentation.*
+generate_doc.py
+render_*.py
+requirements.txt
+__pycache__/
