@@ -13,9 +13,15 @@ const {
   getSharedReport,
 } = require("../controllers/reportController");
 
+const os = require("os");
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename:    (req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`),
+  destination: (req, file, cb) => {
+    // Use /tmp for Vercel/serverless, or 'uploads' for local development
+    const uploadDir = process.env.VERCEL ? os.tmpdir() : "uploads/";
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`),
 });
 
 const upload = multer({
