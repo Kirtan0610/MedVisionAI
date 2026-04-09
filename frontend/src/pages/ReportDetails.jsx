@@ -3,13 +3,16 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import API from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
+
 
 /* ══════════════════════════════════════════
    HEALTH STATUS CHART  (pure SVG — no library)
    Shows each lab parameter as a bar, color-coded
    by status, with the user's value vs normal range
 ══════════════════════════════════════════ */
-function HealthStatusChart({ findings, dark }) {
+function HealthStatusChart({ findings, dark, cur }) {
+
   const [hovered, setHovered] = useState(null);
   if (!findings || findings.length === 0) return null;
 
@@ -60,23 +63,24 @@ function HealthStatusChart({ findings, dark }) {
         <div>
           <h2 className={`font-bold text-sm ${dark ? "text-slate-100" : "text-slate-800"}`}
             style={{ fontFamily: "'Sora',sans-serif" }}>
-            Your Health Parameters — Visual Analysis
+            {cur.charts} — {cur.insights}
           </h2>
           <p className={`text-xs mt-0.5 ${dark ? "text-slate-500" : "text-slate-400"}`}>
-            Each bar shows your value relative to its reference range
+            {cur.medNote}
           </p>
         </div>
       </div>
 
       {/* Legend */}
       <div className="flex gap-4 px-5 pt-4 pb-2">
-        {[["#10b981","Normal"],["#f59e0b","Borderline"],["#ef4444","Abnormal"]].map(([c,l]) => (
+        {[[ "#10b981", "Normal" ], [ "#f59e0b", "Borderline" ], [ "#ef4444", "Abnormal" ]].map(([c, l]) => (
           <div key={l} className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm" style={{ background: c }} />
             <span className={`text-[0.65rem] font-bold ${dark ? "text-slate-400" : "text-slate-500"}`}>{l}</span>
           </div>
         ))}
       </div>
+
 
       {/* SVG Chart */}
       <div className="overflow-x-auto px-5 pb-5">
@@ -243,23 +247,23 @@ function HealthStatusChart({ findings, dark }) {
    for each medicine — unique visual feature   
    that ChatGPT plain text cannot replicate    
 ══════════════════════════════════════════ */
-function MedicineBenefitChart({ medicines, dark }) {
+function MedicineBenefitChart({ medicines, dark, cur }) {
   const [selected, setSelected] = useState(0);
   if (!medicines || medicines.length === 0) return null;
 
   /* Generate deterministic benefit scores from medicine data */
   const getBenefit = (med, day) => {
-    const base = med.type === "Supplement" ? 30
-               : med.type === "OTC Medicine" ? 45 : 55;
-    const growth = med.type === "Supplement" ? 0.55
-                 : med.type === "OTC Medicine" ? 0.65 : 0.75;
+    const base = med.type?.toLowerCase().includes("supplement") ? 30
+               : med.type?.toLowerCase().includes("otc") ? 45 : 55;
+    const growth = med.type?.toLowerCase().includes("supplement") ? 0.55
+                 : med.type?.toLowerCase().includes("otc") ? 0.65 : 0.75;
     const nameBoost = (med.name?.charCodeAt(0) || 65) % 20;
     const raw = base + (day / 90) * (100 - base) * growth + nameBoost * 0.3;
     return Math.min(97, Math.round(raw));
   };
 
   const DAYS     = [0, 30, 60, 90];
-  const DAY_LBLS = ["Start", "30 Days", "60 Days", "90 Days"];
+  const DAY_LBLS = ["0", "30", "60", "90"];
   const CHART_W  = 320;
   const CHART_H  = 160;
   const PAD      = 30;
@@ -277,8 +281,8 @@ function MedicineBenefitChart({ medicines, dark }) {
 
   const areaD = `${pathD} L ${sx(pts.length-1)} ${CHART_H - PAD} L ${PAD} ${CHART_H - PAD} Z`;
 
-  const lineColor = med.type === "Supplement" ? "#3b82f6"
-                  : med.type === "OTC Medicine" ? "#8b5cf6" : "#f59e0b";
+  const lineColor = med.type?.toLowerCase().includes("supplement") ? "#3b82f6"
+                  : med.type?.toLowerCase().includes("otc") ? "#8b5cf6" : "#f59e0b";
 
   return (
     <div className={`rounded-2xl border overflow-hidden animate-fadeIn
@@ -291,13 +295,14 @@ function MedicineBenefitChart({ medicines, dark }) {
         <div>
           <h2 className={`font-bold text-sm ${dark ? "text-slate-100" : "text-slate-800"}`}
             style={{ fontFamily: "'Sora',sans-serif" }}>
-            Medicine Benefit Projection
+            {cur.medicines} — {cur.charts}
           </h2>
           <p className={`text-xs mt-0.5 ${dark ? "text-slate-500" : "text-slate-400"}`}>
-            Estimated health improvement over 90 days if taken as advised
+            {cur.medNote}
           </p>
         </div>
       </div>
+
 
       {/* Medicine selector tabs */}
       <div className="flex gap-2 flex-wrap px-5 pt-4">
@@ -444,17 +449,18 @@ function MedicineBenefitChart({ medicines, dark }) {
    a spider/radar chart — interactive hover
    Something ChatGPT text can NEVER replicate
 ══════════════════════════════════════════ */
-function BodySystemsRadar({ findings, dark }) {
+function BodySystemsRadar({ findings, dark, cur }) {
   const [hovIdx, setHovIdx] = useState(null);
 
   const SYSTEMS = [
-    { name: "Heart",   emoji: "❤️",  keys: ["cholesterol","ldl","hdl","triglyceride","blood pressure","bp","cardiac"] },
-    { name: "Kidney",  emoji: "🫘",  keys: ["creatinine","urea","bun","uric","egfr","kidney"] },
-    { name: "Liver",   emoji: "🟤",  keys: ["sgot","sgpt","alt","ast","bilirubin","albumin","liver","alp"] },
-    { name: "Blood",   emoji: "🩸",  keys: ["hemoglobin","hb","rbc","wbc","platelet","hematocrit","mcv","mch"] },
-    { name: "Sugar",   emoji: "🍬",  keys: ["glucose","sugar","hba1c","insulin","diabetes","fasting"] },
-    { name: "Thyroid", emoji: "🦋",  keys: ["tsh","t3","t4","thyroid","ft3","ft4"] },
+    { name: cur.hi ? "हृदय" : "Heart",   emoji: "❤️",  keys: ["cholesterol","ldl","hdl","triglyceride","blood pressure","bp","cardiac"] },
+    { name: cur.hi ? "गुर्दा" : "Kidney",  emoji: "🫘",  keys: ["creatinine","urea","bun","uric","egfr","kidney"] },
+    { name: cur.hi ? "लीवर" : "Liver",   emoji: "🟤",  keys: ["sgot","sgpt","alt","ast","bilirubin","albumin","liver","alp"] },
+    { name: cur.hi ? "रक्त" : "Blood",   emoji: "🩸",  keys: ["hemoglobin","hb","rbc","wbc","platelet","hematocrit","mcv","mch"] },
+    { name: cur.hi ? "शुगर" : "Sugar",   emoji: "🍬",  keys: ["glucose","sugar","hba1c","insulin","diabetes","fasting"] },
+    { name: cur.hi ? "थायराइड" : "Thyroid", emoji: "🦋",  keys: ["tsh","t3","t4","thyroid","ft3","ft4"] },
   ];
+
 
   const scores = SYSTEMS.map(sys => {
     const related = (findings || []).filter(f =>
@@ -626,7 +632,7 @@ function BodySystemsRadar({ findings, dark }) {
         <div className={`mx-5 mb-5 p-3 rounded-xl border animate-fadeInUp text-xs
           ${dark ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-500"}`}>
           <span className="font-bold" style={{ color: sColor(scores[hovIdx]) }}>
-            {scores[hovIdx].emoji} {scores[hovIdx].name} System
+            {scores[hovIdx].emoji} {scores[hovIdx].name} {cur.hi ? "प्रणाली" : "System"}
           </span>
           {scores[hovIdx].hasData
             ? ` — ${scores[hovIdx].count} matching parameter(s) found in your report. Score: ${scores[hovIdx].score}/100`
@@ -643,7 +649,7 @@ function BodySystemsRadar({ findings, dark }) {
    projects how habits would cut your risk score.
    No text AI can offer this live feedback loop.
 ══════════════════════════════════════════ */
-function LifestyleSimulator({ parsed, dark }) {
+function LifestyleSimulator({ parsed, dark, cur }) {
   const baseRisk = parsed?.riskScore ?? 50;
   const [diet,      setDiet]      = useState(50);
   const [exercise,  setExercise]  = useState(50);
@@ -666,11 +672,11 @@ function LifestyleSimulator({ parsed, dark }) {
   const bColor   = baseRisk  < 33 ? "#10b981" : baseRisk  < 66 ? "#f59e0b" : "#ef4444";
 
   const sliders = [
-    { label: "Diet Quality",    emoji: "🥗", val: diet,      set: setDiet,      low: "Poor",    high: "Excellent" },
-    { label: "Exercise",        emoji: "🏃", val: exercise,  set: setExercise,  low: "None",    high: "Daily" },
-    { label: "Sleep Quality",   emoji: "😴", val: sleep,     set: setSleep,     low: "Poor",    high: "8 hrs+" },
-    { label: "Stress Level",    emoji: "🧘", val: stress,    set: setStress,    low: "Calm",    high: "Very High" },
-    { label: "Water Intake",    emoji: "💧", val: hydration, set: setHydration, low: "Low",     high: "Well Hydrated" },
+    { label: cur.hi ? "खान-पान" : "Diet Quality",    emoji: "🥗", val: diet,      set: setDiet,      low: cur.hi ? "खराब" : "Poor",    high: cur.hi ? "शानदार" : "Excellent" },
+    { label: cur.hi ? "व्यायाम" : "Exercise",        emoji: "🏃", val: exercise,  set: setExercise,  low: cur.hi ? "कोई नहीं" : "None",    high: cur.hi ? "दैनिक" : "Daily" },
+    { label: cur.hi ? "नींद" : "Sleep Quality",   emoji: "😴", val: sleep,     set: setSleep,     low: cur.hi ? "खराब" : "Poor",    high: cur.hi ? "8 घंटे+" : "8 hrs+" },
+    { label: cur.hi ? "तनाव (कम)" : "Stress Level ↓",    emoji: "🧘", val: stress,    set: setStress,    low: cur.hi ? "शांत" : "Calm",    high: cur.hi ? "बहुत अधिक" : "Very High" },
+    { label: cur.hi ? "पानी" : "Water Intake",    emoji: "💧", val: hydration, set: setHydration, low: cur.hi ? "कम" : "Low",     high: cur.hi ? "भरपूर" : "Well Hydrated" },
   ];
 
   return (
@@ -683,10 +689,10 @@ function LifestyleSimulator({ parsed, dark }) {
         <div>
           <h2 className={`font-bold text-sm ${dark ? "text-slate-100" : "text-slate-800"}`}
             style={{ fontFamily: "'Sora',sans-serif" }}>
-            Lifestyle Impact Simulator
+            {cur.lifestyleSim}
           </h2>
           <p className={`text-xs mt-0.5 ${dark ? "text-slate-500" : "text-slate-400"}`}>
-            Drag sliders to instantly simulate how lifestyle changes affect your risk score
+            {cur.simSlogan}
           </p>
         </div>
       </div>
@@ -697,7 +703,7 @@ function LifestyleSimulator({ parsed, dark }) {
         <div className={`grid grid-cols-2 gap-3 p-4 rounded-2xl border
           ${dark ? "bg-slate-800/60 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
           <div className="text-center">
-            <p className={`text-[0.6rem] font-bold uppercase tracking-wide mb-2 ${dark ? "text-slate-500" : "text-slate-400"}`}>Your Current Risk</p>
+            <p className={`text-[0.6rem] font-bold uppercase tracking-wide mb-2 ${dark ? "text-slate-500" : "text-slate-400"}`}>{cur.currentRisk}</p>
             <p className="font-black text-4xl" style={{ color: bColor, fontFamily: "'Sora',sans-serif" }}>{baseRisk}</p>
             <p className={`text-[0.6rem] mt-1 ${dark ? "text-slate-500" : "text-slate-400"}`}>/ 100</p>
             <div className={`mt-2 h-2 rounded-full ${dark ? "bg-slate-700" : "bg-slate-200"}`}>
@@ -705,7 +711,7 @@ function LifestyleSimulator({ parsed, dark }) {
             </div>
           </div>
           <div className="text-center">
-            <p className={`text-[0.6rem] font-bold uppercase tracking-wide mb-2 ${dark ? "text-slate-500" : "text-slate-400"}`}>Projected Risk</p>
+            <p className={`text-[0.6rem] font-bold uppercase tracking-wide mb-2 ${dark ? "text-slate-500" : "text-slate-400"}`}>{cur.projectedRisk}</p>
             <p className="font-black text-4xl" style={{ color: rColor, fontFamily: "'Sora',sans-serif", transition: "color 0.3s" }}>{projRisk}</p>
             <p className={`text-[0.6rem] mt-1 ${dark ? "text-slate-500" : "text-slate-400"}`}>/ 100</p>
             <div className={`mt-2 h-2 rounded-full ${dark ? "bg-slate-700" : "bg-slate-200"}`}>
@@ -723,8 +729,8 @@ function LifestyleSimulator({ parsed, dark }) {
               <span className="text-base">{improved ? "📉" : "🎯"}</span>
               <p className={`text-sm font-black ${improved ? "text-emerald-500" : dark ? "text-slate-400" : "text-slate-500"}`}>
                 {improved
-                  ? `${Math.abs(diff)} point improvement possible!`
-                  : "Drag sliders above to simulate improvement"}
+                  ? `${Math.abs(diff)} ${cur.possibleImp}`
+                  : cur.dragSliders}
               </p>
             </div>
           </div>
@@ -741,7 +747,7 @@ function LifestyleSimulator({ parsed, dark }) {
                 </div>
                 <span className={`text-xs font-black
                   ${val >= 70 ? "text-emerald-500" : val >= 40 ? "text-amber-500" : "text-red-500"}`}>
-                  {val < 30 ? low : val > 70 ? high : "Moderate"}
+                  {val < 35 ? low : val > 75 ? high : cur.moderate}
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -761,42 +767,23 @@ function LifestyleSimulator({ parsed, dark }) {
           ))}
         </div>
 
-        {/* Insight boxes */}
-        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2`}>
-          {[
-            { label: "Diet",     val: diet,       emoji: "🥗" },
-            { label: "Exercise", val: exercise,   emoji: "🏃" },
-            { label: "Sleep",    val: sleep,      emoji: "😴" },
-            { label: "Stress ↓", val: 100 - stress, emoji: "🧘" },
-          ].map(({ label, val, emoji }) => (
-            <div key={label} className={`rounded-xl border p-2.5 text-center
-              ${dark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
-              <p className="text-base mb-1">{emoji}</p>
-              <p className={`text-[0.6rem] font-bold uppercase ${dark ? "text-slate-500" : "text-slate-400"}`}>{label}</p>
-              <p className="font-black text-sm"
-                style={{ color: val >= 70 ? "#10b981" : val >= 40 ? "#f59e0b" : "#ef4444" }}>
-                {val}%
-              </p>
-            </div>
-          ))}
-        </div>
-
         <div className={`px-4 py-2.5 rounded-xl text-xs border
           ${dark ? "bg-amber-500/8 border-amber-500/20 text-amber-400/70" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
-          ⚠ This is a simulated motivational estimate. Actual improvements depend on individual health conditions.
-          Always consult your doctor before making lifestyle changes.
+          ⚠ {cur.hi ? "यह एक सिम्युलेटेड अनुमान है। वास्तविक परिणाम आपकी स्वास्थ्य स्थिति पर निर्भर करते हैं। कोई भी बदलाव करने से पहले अपने डॉक्टर से सलाह लें।" : "This is a simulated motivational estimate. Actual improvements depend on individual health conditions. Always consult your doctor before making lifestyle changes."}
         </div>
       </div>
     </div>
   );
 }
 
+
 /* ── Risk Ring ── */
-function RiskRing({ score = 0, riskLevel = "Low", dark }) {
+function RiskRing({ score = 0, riskLevel = "Low", dark, label }) {
   const r = 46, circ = 2 * Math.PI * r;
   const offset = circ - (score / 100) * circ;
-  const color  = riskLevel === "High" ? "#ef4444" : riskLevel === "Medium" ? "#f59e0b" : "#10b981";
-  const glow   = riskLevel === "High" ? "shadow-red-500/30" : riskLevel === "Medium" ? "shadow-amber-500/30" : "shadow-emerald-500/30";
+  const color  = riskLevel.toLowerCase().includes("high") || riskLevel.toLowerCase().includes("uch") || riskLevel.toLowerCase().includes("gambhir") ? "#ef4444" 
+               : riskLevel.toLowerCase().includes("medium") || riskLevel.toLowerCase().includes("madhyam") || riskLevel.toLowerCase().includes("theek") ? "#f59e0b" : "#10b981";
+  const glow   = color === "#ef4444" ? "shadow-red-500/30" : color === "#f59e0b" ? "shadow-amber-500/30" : "shadow-emerald-500/30";
   return (
     <div className={`relative w-28 h-28 shrink-0 rounded-full shadow-xl ${glow}`}>
       <svg width="112" height="112" className="progress-ring -rotate-90" viewBox="0 0 112 112"
@@ -807,13 +794,14 @@ function RiskRing({ score = 0, riskLevel = "Low", dark }) {
           strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
           className="progress-ring__circle" style={{ filter: `drop-shadow(0 0 4px ${color}80)` }} />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
         <span className="font-black text-2xl leading-none" style={{ fontFamily: "'Sora',sans-serif", color }}>{score}</span>
-        <span className={`text-[0.5rem] font-bold uppercase tracking-widest mt-0.5 ${dark ? "text-slate-500" : "text-slate-400"}`}>Risk Score</span>
+        <span className={`text-[0.45rem] font-bold uppercase tracking-widest mt-0.5 leading-tight ${dark ? "text-slate-500" : "text-slate-400"}`}>{label}</span>
       </div>
     </div>
   );
 }
+
 
 /* ── Finding Row ── */
 function FindingRow({ f, dark, i }) {
@@ -855,13 +843,21 @@ function FindingRow({ f, dark, i }) {
 }
 
 /* ── Medicine Card ── */
-function MedicineCard({ med, dark, i }) {
+/* ── Medicine Card ── */
+function MedicineCard({ med, dark, i, cur }) {
   const typeCfg = {
-    "Supplement":            { grad: "from-blue-500/10 to-blue-600/5", border: "border-blue-500/20", badge: "text-blue-400 bg-blue-500/10 border-blue-500/25", icon: "💊" },
-    "OTC Medicine":          { grad: "from-violet-500/10 to-violet-600/5", border: "border-violet-500/20", badge: "text-violet-400 bg-violet-500/10 border-violet-500/25", icon: "🧪" },
-    "Prescription Required": { grad: "from-orange-500/10 to-orange-600/5", border: "border-orange-500/20", badge: "text-orange-400 bg-orange-500/10 border-orange-500/25", icon: "📋" },
+    "supplement":            { grad: "from-blue-500/10 to-blue-600/5", border: "border-blue-500/20", badge: "text-blue-400 bg-blue-500/10 border-blue-500/25", icon: "💊" },
+    "otc":                   { grad: "from-violet-500/10 to-violet-600/5", border: "border-violet-500/20", badge: "text-violet-400 bg-violet-500/10 border-violet-500/25", icon: "🧪" },
+    "prescription":          { grad: "from-orange-500/10 to-orange-600/5", border: "border-orange-500/20", badge: "text-orange-400 bg-orange-500/10 border-orange-500/25", icon: "📋" },
   };
-  const t = typeCfg[med.type] || typeCfg["Supplement"];
+  const getT = (type) => {
+    const t = String(type).toLowerCase();
+    if (t.includes("supplement")) return typeCfg.supplement;
+    if (t.includes("otc") || t.includes("dawai")) return typeCfg.otc;
+    if (t.includes("prescription") || t.includes("parchi")) return typeCfg.prescription;
+    return typeCfg.supplement;
+  };
+  const t = getT(med.type);
   const warnBg = dark
     ? "bg-amber-500/8 border-amber-500/20 text-amber-400/80"
     : "bg-amber-50 border-amber-200 text-amber-700";
@@ -889,7 +885,7 @@ function MedicineCard({ med, dark, i }) {
           {med.requiresConsultation && (
             <span className="shrink-0 text-[0.6rem] font-bold px-2 py-0.5 rounded-full border
               text-blue-400 bg-blue-500/10 border-blue-500/25 uppercase tracking-wide whitespace-nowrap">
-              Rx Required
+              {cur.rxReq}
             </span>
           )}
         </div>
@@ -899,12 +895,12 @@ function MedicineCard({ med, dark, i }) {
       <div className={`px-4 pb-4 space-y-2 text-xs ${dark ? "bg-slate-900/50" : "bg-white"}`}>
         {med.reason && (
           <div className={`p-2.5 rounded-xl ${dark ? "bg-slate-800 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
-            <span className="font-bold">Why: </span>{med.reason}
+            <span className="font-bold">{cur.why}: </span>{med.reason}
           </div>
         )}
         {med.dosage && (
           <div className={`p-2.5 rounded-xl ${dark ? "bg-slate-800 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
-            <span className="font-bold">Dosage: </span>{med.dosage}
+            <span className="font-bold">{cur.dosage}: </span>{med.dosage}
           </div>
         )}
         {med.caution && (
@@ -916,6 +912,7 @@ function MedicineCard({ med, dark, i }) {
     </div>
   );
 }
+
 
 /* ── Tab Button ── */
 function Tab({ label, active, onClick, dark, count }) {
@@ -963,84 +960,201 @@ function SectionHeader({ icon, title, subtitle, dark }) {
   );
 }
 
+/* ── Translation Map ── */
+const tMap = {
+  en: {
+    hi: false,
+    back: "Back",
+    reanalyze: "Re-analyze",
+    analyzing: "Analyzing...",
+    whatsapp: "WhatsApp",
+    copyLink: "Copy Link",
+    copied: "Copied!",
+    print: "Print Report",
+    delete: "Delete",
+    riskScore: "Risk Score",
+    health: "Health",
+    risk: "Risk",
+    visitDoctor: "Visit Doctor",
+    drNote: "Dr. MedVision — AI Analysis",
+    goodNews: "Good News",
+    watchOut: "Watch Out",
+    abnormalValues: "Abnormal Values",
+    viewAll: "View all",
+    followUp: "Recommended Follow-Up",
+    overview: "Overview",
+    summary: "Summary",
+    findings: "Lab Values",
+    charts: "Charts",
+    insights: "Insights",
+    advice: "Advice",
+    medicines: "Medicines",
+    parameter: "Parameter",
+    value: "Your Value",
+    range: "Normal Range",
+    status: "Status",
+    level: "Level",
+    notes: "Doctor's Notes",
+    diet: "Diet Recommendation",
+    lifestyle: "Lifestyle Suggestions",
+    medDisclaimer: "Medical Disclaimer",
+    medNote: "Take this list to your doctor. They can confirm which ones are right for you.",
+    noMeds: "No medicines suggested",
+    delTitle: "Delete this Report?",
+    delMsg: "This action cannot be undone. The report will be permanently removed.",
+    cancel: "Cancel",
+    drugType: "Type",
+    why: "Why",
+    dosage: "Dosage",
+    rxReq: "Rx Required",
+    lifestyleSim: "Lifestyle Impact Simulator",
+    simSlogan: "Drag sliders to simulate risk reduction",
+    currentRisk: "Your Current Risk",
+    projectedRisk: "Projected Risk",
+    possibleImp: "point improvement possible!",
+    dragSliders: "Drag sliders to simulate improvement",
+    moderate: "Moderate",
+  },
+  hi: {
+    hi: true,
+    back: "पीछे",
+    reanalyze: "फिर से जांचें",
+    analyzing: "जांच जारी है...",
+    whatsapp: "व्हाट्सएप",
+    copyLink: "लिंक कॉपी करें",
+    copied: "कॉपी हो गया!",
+    print: "रिपोर्ट प्रिंट करें",
+    delete: "हटाएं",
+    riskScore: "जोखिम स्कोर",
+    health: "स्वास्थ्य",
+    risk: "जोखिम",
+    visitDoctor: "डॉक्टर से मिलें",
+    drNote: "डॉ. मेडविज़न — एआई विश्लेषण",
+    goodNews: "अच्छी खबर",
+    watchOut: "सावधान रहें",
+    abnormalValues: "असामान्य परिणाम",
+    viewAll: "सब देखें",
+    followUp: "अगली सलाह",
+    overview: "अवलोकन",
+    summary: "सारांश",
+    findings: "लैब रिपोर्ट्स",
+    charts: "चार्ट्स",
+    insights: "अंदरूनी जानकारी",
+    advice: "सलाह",
+    medicines: "दवाइयां",
+    parameter: "पैरामीटर",
+    value: "आपका परिणाम",
+    range: "सामान्य सीमा",
+    status: "स्थिति",
+    level: "स्तर",
+    notes: "डॉक्टर की सलाह",
+    diet: "आहार संबंधी सलाह",
+    lifestyle: "जीवनशैली में बदलाव",
+    medDisclaimer: "चिकित्सा अस्वीकरण",
+    medNote: "इस सूची को अपने डॉक्टर के पास ले जाएं। वे पुष्टि कर सकते हैं कि कौन सी आपके लिए सही है।",
+    noMeds: "कोई दवा सुझाई नहीं गई",
+    delTitle: "रिपोर्ट हटाएं?",
+    delMsg: "यह प्रक्रिया वापस नहीं ली जा सकती। रिपोर्ट हमेशा के लिए हटा दी जाएगी।",
+    cancel: "रद्द करें",
+    drugType: "प्रकार",
+    why: "कारण",
+    dosage: "मात्रा",
+    rxReq: "पर्ची ज़रूरी",
+    lifestyleSim: "जीवनशैली प्रभाव सिम्युलेटर",
+    simSlogan: "परिवर्तनों से जोखिम में कमी देखें",
+    currentRisk: "आपका वर्तमान जोखिम",
+    projectedRisk: "अनुमानित जोखिम",
+    possibleImp: "अंक का सुधार संभव है!",
+    dragSliders: "सुधार देखने के लिए स्लाइडर्स खिसकाएं",
+    moderate: "औसत",
+  }
+};
+
 /* ══ MAIN ══ */
 export default function ReportDetails() {
   const { id }     = useParams();
-  const { user }   = useContext(AuthContext);
-  const { dark }   = useTheme();
-  const navigate   = useNavigate();
+  const navigate    = useNavigate();
+  const { user }    = useContext(AuthContext);
+  const { dark }    = useTheme();
+  const { lang }    = useLanguage();
+  const [loading, setLoading]     = useState(true);
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [report, setReport]       = useState(null);
+  const [tab, setTab]             = useState("overview");
+  const [showDelete, setShowDelete] = useState(false);
+  const [copying, setCopying]     = useState(false);
+  const [isPrintable, setIsPrintable] = useState(false);
+  const [sharing, setSharing]     = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [copied, setCopied]       = useState(false);
 
-  const [report, setReport]               = useState(null);
-  const [parsed, setParsed]               = useState(null);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState("");
-  const [deleting, setDeleting]           = useState(false);
-  const [showDelete, setShowDelete]       = useState(false);
-  const [tab, setTab]                     = useState("overview");
-  const [reanalyzing, setReanalyzing]     = useState(false);
-  const [reanalyzeLang, setReanalyzeLang] = useState("en");
-  const [sharing, setSharing]             = useState(false);
-  const [shareLink, setShareLink]         = useState("");
-  const [copied, setCopied]               = useState(false);
+
+  const cur = tMap[lang] || tMap.en;
 
   const handleReanalyze = async () => {
-    setReanalyzing(true);
     try {
-      const res = await API.post(
-        `/reports/${id}/reanalyze`,
-        { language: reanalyzeLang },
-        { headers: { Authorization: `Bearer ${user.token}` } }
-      );
+      setReanalyzing(true);
+      const res = await API.post(`/reports/${id}/reanalyze`, {}, {
+        params: { language: lang },
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
       setReport(res.data);
-      try { setParsed(JSON.parse(res.data.aiResult)); } catch {}
-    } catch (e) { console.error(e); }
-    finally { setReanalyzing(false); }
+    } catch (err) {
+      alert("Analysis failed");
+    } finally {
+      setReanalyzing(false);
+    }
   };
 
-  const handleShare = async () => {
+  const handleShare = async (platform = "link") => {
     setSharing(true);
     try {
-      const res = await API.post(`/reports/${id}/share`, {},
-        { headers: { Authorization: `Bearer ${user.token}` } });
+      const res = await API.post(`/reports/${id}/share`, {}, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
       const link = `${window.location.origin}/shared/${res.data.shareToken}`;
       setShareLink(link);
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    } catch {} finally { setSharing(false); }
+      
+      if (platform === "link") {
+        await navigator.clipboard.writeText(link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } else if (platform === "whatsapp") {
+        const text = `Hey, check out my medical report analysis by MedVision AI: ${link}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      }
+    } catch (err) {
+      alert("Sharing failed");
+    } finally {
+      setSharing(false);
+    }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDelete = async () => {
+    try {
+      await API.delete(`/reports/${id}`, { headers: { Authorization: `Bearer ${user.token}` } });
+      navigate("/reports");
+    } catch (err) {
+      alert("Delete failed");
+    }
+  };
 
   useEffect(() => {
     if (!user?.token) return;
     API.get(`/reports/${id}`, { headers: { Authorization: `Bearer ${user.token}` } })
       .then(res => {
         setReport(res.data);
-        try { setParsed(JSON.parse(res.data.aiResult)); } catch {}
         setLoading(false);
       })
-      .catch(() => { setError("Could not load report."); setLoading(false); });
+      .catch(() => { setLoading(false); });
   }, [id, user]);
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await API.delete(`/reports/${id}`, { headers: { Authorization: `Bearer ${user.token}` } });
-      navigate("/reports");
-    } catch { setDeleting(false); }
-  };
 
-  /* ── Style tokens ── */
-  const card    = dark ? "bg-slate-900 border-slate-800"   : "bg-white border-slate-200";
-  const muted   = dark ? "text-slate-400" : "text-slate-500";
-  const hdrTxt  = dark ? "text-slate-100" : "text-slate-800";
-  const divider = dark ? "border-slate-800" : "border-slate-100";
-  const tabWrap = dark ? "bg-slate-800/60 border-slate-700" : "bg-slate-100/80 border-slate-200";
-  const thBg    = dark ? "bg-slate-800/80 text-slate-500"  : "bg-slate-50 text-slate-400";
-  const btnDef  = dark
-    ? "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600"
-    : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300";
+  const parsed = report?.aiResult ? JSON.parse(report.aiResult) : null;
 
   /* ── Loading state ── */
   if (loading) return (
@@ -1054,10 +1168,10 @@ export default function ReportDetails() {
     </div>
   );
 
-  if (error) return (
+  if (!report && !loading) return (
     <div className="max-w-4xl mx-auto text-center py-24">
       <span className="text-5xl mb-4 block">😕</span>
-      <p className="text-red-400 font-bold mb-5">{error}</p>
+      <p className="text-red-400 font-bold mb-5">Could not load report.</p>
       <Link to="/reports"
         className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
         ← Back to Reports
@@ -1065,26 +1179,40 @@ export default function ReportDetails() {
     </div>
   );
 
+
   const rColor    = parsed?.riskLevel === "High" ? "#ef4444" : parsed?.riskLevel === "Medium" ? "#f59e0b" : "#10b981";
   const abnormals = parsed?.keyFindings?.filter(f => f.status !== "Normal") || [];
   const medicines = parsed?.recommendedMedicines || [];
   const findings  = parsed?.keyFindings || [];
 
+  /* ── Style tokens ── */
+  const card    = dark ? "bg-slate-900 border-slate-800"   : "bg-white border-slate-200";
+  const muted   = dark ? "text-slate-400" : "text-slate-500";
+  const hdrTxt  = dark ? "text-slate-100" : "text-slate-800";
+  const divider = dark ? "border-slate-800" : "border-slate-100";
+  const tabWrap = dark ? "bg-slate-800/60 border-slate-700" : "bg-slate-100/80 border-slate-200";
+  const thBg    = dark ? "bg-slate-800/80 text-slate-500"  : "bg-slate-50 text-slate-400";
+  const btnDef  = dark
+    ? "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600"
+    : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300";
+
+
   const TABS = [
-    { key: "overview",  label: "Overview",     icon: "🏠" },
-    { key: "summary",   label: "Summary",      icon: "📋" },
-    { key: "findings",  label: "Lab Values",   icon: "🔬", count: findings.length },
-    { key: "charts",    label: "Charts",       icon: "📊" },
-    { key: "insights",  label: "Insights",     icon: "✨" },
-    { key: "advice",    label: "Advice",       icon: "💡" },
-    { key: "medicines", label: "Medicines",    icon: "💊", count: medicines.length },
+    { key: "overview",  label: cur.overview,   icon: "🏠" },
+    { key: "summary",   label: cur.summary,    icon: "📋" },
+    { key: "findings",  label: cur.findings,   icon: "🔬", count: findings.length },
+    { key: "charts",    label: cur.charts,     icon: "📊" },
+    { key: "insights",  label: cur.insights,   icon: "✨" },
+    { key: "advice",    label: cur.advice,     icon: "💡" },
+    { key: "medicines", label: cur.medicines,  icon: "💊", count: medicines.length },
   ];
 
   const dateStr = report?.createdAt
-    ? new Date(report.createdAt).toLocaleDateString("en-IN", {
+    ? new Date(report.createdAt).toLocaleDateString(lang === "hi" ? "hi-IN" : "en-IN", {
         weekday: "long", day: "numeric", month: "long", year: "numeric"
       })
     : "";
+
 
   return (
     <div className="max-w-4xl mx-auto" style={{ fontFamily: "'Inter',sans-serif" }}>
@@ -1093,40 +1221,39 @@ export default function ReportDetails() {
       <div className="flex flex-wrap items-center gap-2 mb-5 animate-fadeInDown">
         <Link to="/reports"
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 ${btnDef}`}>
-          ← Back
+          ← {cur.back}
         </Link>
 
         <div className="flex flex-wrap gap-2 ml-auto items-center">
-          {/* Lang toggle */}
-          <div className={`flex rounded-xl border overflow-hidden text-[0.65rem] font-black ${dark ? "border-slate-700" : "border-slate-200"}`}>
-            {[["en", "EN"], ["hi", "हिं"]].map(([v, l]) => (
-              <button key={v} onClick={() => setReanalyzeLang(v)}
-                className={`px-3 py-2 transition-all duration-200
-                  ${reanalyzeLang === v
-                    ? "bg-blue-600 text-white"
-                    : dark ? "bg-slate-800 text-slate-400 hover:text-slate-200" : "bg-white text-slate-500 hover:text-slate-700"
-                  }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+          {/* Lang toggle (Removed as now global in sidebar) */}
+
 
           <button onClick={handleReanalyze} disabled={reanalyzing}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 ${btnDef} disabled:opacity-40`}>
             {reanalyzing
-              ? <><span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full spinner" />Analyzing…</>
-              : "⟳ Re-analyze"}
+              ? <><span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full spinner" />{cur.analyzing}</>
+              : `⟳ ${cur.reanalyze}`}
           </button>
 
-          <button onClick={handleShare} disabled={sharing}
+          <button onClick={() => handleShare("whatsapp")} disabled={sharing}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 
+              ${dark 
+                ? "border-emerald-500/30 bg-emerald-500/8 text-emerald-400 hover:bg-emerald-500/15" 
+                : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"} disabled:opacity-40`}>
+            <span>📲 {cur.whatsapp}</span>
+          </button>
+
+          <button onClick={() => handleShare("link")} disabled={sharing}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 ${btnDef} disabled:opacity-40`}>
-            {sharing ? "Sharing…" : copied ? "✓ Copied!" : "↗ Share"}
+            {sharing ? "..." : copied ? `✓ ${cur.copied}` : `🔗 ${cur.copyLink}`}
           </button>
 
           <button onClick={handlePrint}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 ${btnDef}`}>
-            ⬇ Export PDF
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 
+              ${dark 
+                ? "border-blue-500/30 bg-blue-500/8 text-blue-400 hover:bg-blue-500/15" 
+                : "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"}`}>
+            <span>📄 {cur.print}</span>
           </button>
 
           <button onClick={() => setShowDelete(true)}
@@ -1135,10 +1262,11 @@ export default function ReportDetails() {
                 ? "border-red-500/30 bg-red-500/8 text-red-400 hover:bg-red-500/15 hover:border-red-500/50"
                 : "border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-300"
               }`}>
-            🗑 Delete
+            🗑 {cur.delete}
           </button>
         </div>
       </div>
+
 
       {/* Share link banner */}
       {shareLink && (
@@ -1146,7 +1274,7 @@ export default function ReportDetails() {
           ${dark ? "bg-emerald-500/8 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
           <span className="text-emerald-400 font-black text-base shrink-0">✓</span>
           <span className={`truncate flex-1 font-mono text-[0.7rem] ${dark ? "text-slate-400" : "text-slate-500"}`}>{shareLink}</span>
-          <span className={`shrink-0 font-bold ${dark ? "text-emerald-400" : "text-emerald-600"}`}>{copied ? "Copied!" : ""}</span>
+          <span className={`shrink-0 font-bold ${dark ? "text-emerald-400" : "text-emerald-600"}`}>{copied ? cur.copied : ""}</span>
         </div>
       )}
 
@@ -1161,7 +1289,7 @@ export default function ReportDetails() {
 
         <div className="p-5 sm:p-7 relative">
           <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
-            {parsed && <RiskRing score={parsed.riskScore || 0} riskLevel={parsed.riskLevel} dark={dark} />}
+            {parsed && <RiskRing score={parsed.riskScore || 0} riskLevel={parsed.riskLevel} label={cur.riskScore} dark={dark} />}
 
             <div className="flex-1 min-w-0">
               {/* Badges */}
@@ -1169,17 +1297,17 @@ export default function ReportDetails() {
                 {parsed?.riskLevel && (
                   <span className="text-[0.65rem] font-bold uppercase tracking-wider px-3 py-1 rounded-full border"
                     style={{ color: rColor, background: `${rColor}18`, borderColor: `${rColor}40` }}>
-                    {parsed.riskLevel} Risk
+                    {parsed.riskLevel} {cur.risk}
                   </span>
                 )}
                 {parsed?.overallHealth && (
                   <span className={`text-[0.65rem] font-bold uppercase tracking-wider px-3 py-1 rounded-full border
-                    ${parsed.overallHealth === "Good"
+                    ${parsed.overallHealth.toLowerCase().includes("good") || parsed.overallHealth.toLowerCase().includes("ache")
                       ? dark ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" : "text-emerald-600 bg-emerald-50 border-emerald-200"
-                      : parsed.overallHealth === "Fair"
+                      : parsed.overallHealth.toLowerCase().includes("fair") || parsed.overallHealth.toLowerCase().includes("theek")
                         ? dark ? "text-amber-400 bg-amber-500/10 border-amber-500/30" : "text-amber-600 bg-amber-50 border-amber-200"
                         : dark ? "text-red-400 bg-red-500/10 border-red-500/30" : "text-red-600 bg-red-50 border-red-200"}`}>
-                    {parsed.overallHealth} Health
+                    {parsed.overallHealth} {cur.health}
                   </span>
                 )}
               </div>
@@ -1189,6 +1317,7 @@ export default function ReportDetails() {
                 {report?.originalFileName}
               </h1>
               <p className={`text-xs ${muted}`}>{dateStr}</p>
+
 
               {/* Mini stats row */}
               {parsed && (
@@ -1225,10 +1354,11 @@ export default function ReportDetails() {
                   {parsed.doctorAdvice.urgency.toLowerCase().includes("today") ? "🚨"
                     : parsed.doctorAdvice.urgency.toLowerCase().includes("week") ? "⏰" : "✅"}
                 </p>
-                <p className={`text-[0.6rem] font-semibold uppercase tracking-wide ${muted}`}>Visit Doctor</p>
+                <p className={`text-[0.6rem] font-semibold uppercase tracking-wide ${muted}`}>{cur.visitDoctor}</p>
                 <p className="text-xs font-bold mt-0.5" style={{ color: rColor }}>
                   {parsed.doctorAdvice.urgency}
                 </p>
+
               </div>
             )}
           </div>
@@ -1247,8 +1377,9 @@ export default function ReportDetails() {
             </div>
             <div>
               <p className="text-blue-500 text-[0.65rem] font-black uppercase tracking-widest mb-1.5">
-                Dr. MedVision — AI Analysis
+                {cur.drNote}
               </p>
+
               <p className={`text-sm leading-relaxed ${dark ? "text-slate-300" : "text-slate-700"}`}>
                 {parsed.patientSummary}
               </p>
@@ -1277,8 +1408,9 @@ export default function ReportDetails() {
             {parsed?.goodNews && (
               <div className={`rounded-2xl border-l-4 border-emerald-500 overflow-hidden ${card}`}>
                 <div className={`px-4 pt-4 pb-1 ${dark ? "bg-emerald-500/5" : "bg-emerald-50"}`}>
-                  <p className="text-emerald-500 text-xs font-black uppercase tracking-wide mb-0.5">✓ Good News</p>
+                  <p className="text-emerald-500 text-xs font-black uppercase tracking-wide mb-0.5">✓ {cur.goodNews}</p>
                 </div>
+
                 <div className="px-4 pb-4 pt-2">
                   <p className={`text-sm leading-relaxed ${muted}`}>{parsed.goodNews}</p>
                 </div>
@@ -1287,8 +1419,9 @@ export default function ReportDetails() {
             {parsed?.watchOut && (
               <div className={`rounded-2xl border-l-4 border-amber-500 overflow-hidden ${card}`}>
                 <div className={`px-4 pt-4 pb-1 ${dark ? "bg-amber-500/5" : "bg-amber-50"}`}>
-                  <p className="text-amber-500 text-xs font-black uppercase tracking-wide mb-0.5">⚠ Watch Out</p>
+                  <p className="text-amber-500 text-xs font-black uppercase tracking-wide mb-0.5">⚠ {cur.watchOut}</p>
                 </div>
+
                 <div className="px-4 pb-4 pt-2">
                   <p className={`text-sm leading-relaxed ${muted}`}>{parsed.watchOut}</p>
                 </div>
@@ -1302,12 +1435,13 @@ export default function ReportDetails() {
               ${dark ? "bg-red-500/5 border-red-500/20" : "bg-red-50 border-red-200"}`}>
               <div className="px-5 py-3.5 flex items-center justify-between">
                 <p className="text-red-500 text-xs font-black uppercase tracking-wide">
-                  🔴 {abnormals.length} Abnormal Value{abnormals.length > 1 ? "s" : ""}
+                  🔴 {abnormals.length} {cur.abnormalValues}
                 </p>
                 <button onClick={() => setTab("findings")}
                   className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors">
-                  View all →
+                  {cur.viewAll} →
                 </button>
+
               </div>
               <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 px-4 pb-4`}>
                 {abnormals.map((f, i) => (
@@ -1334,10 +1468,11 @@ export default function ReportDetails() {
           {/* Follow-up */}
           {parsed?.doctorAdvice?.followUp && (
             <div className={`rounded-2xl border p-4 ${dark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
-              <p className="text-blue-500 text-xs font-black uppercase tracking-wide mb-1.5">📅 Recommended Follow-Up</p>
+              <p className="text-blue-500 text-xs font-black uppercase tracking-wide mb-1.5">📅 {cur.followUp}</p>
               <p className={`text-sm leading-relaxed ${muted}`}>{parsed.doctorAdvice.followUp}</p>
             </div>
           )}
+
 
           {/* Raw AI result fallback */}
           {!parsed && report?.aiResult && (
@@ -1361,7 +1496,7 @@ export default function ReportDetails() {
               {/* Risk Progress */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs font-bold ${muted}`}>Risk Level</span>
+                  <span className={`text-xs font-bold ${muted}`}>{cur.hi ? "जोखिम स्तर" : "Risk Level"}</span>
                   <span className="text-sm font-black" style={{ color: rColor }}>
                     {parsed.riskLevel} · {parsed.riskScore}/100
                   </span>
@@ -1371,10 +1506,11 @@ export default function ReportDetails() {
                     style={{ width: `${parsed.riskScore}%`, background: `linear-gradient(90deg, ${rColor}70, ${rColor})` }} />
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-[0.6rem] text-emerald-500 font-bold">Low</span>
-                  <span className="text-[0.6rem] text-amber-500 font-bold">Medium</span>
-                  <span className="text-[0.6rem] text-red-500 font-bold">High</span>
+                  <span className="text-[0.6rem] text-emerald-500 font-bold">{cur.hi ? "कम" : "Low"}</span>
+                  <span className="text-[0.6rem] text-amber-500 font-bold">{cur.hi ? "मध्यम" : "Medium"}</span>
+                  <span className="text-[0.6rem] text-red-500 font-bold">{cur.hi ? "उच्च" : "High"}</span>
                 </div>
+
               </div>
 
               {/* Summary Stats */}
@@ -1382,21 +1518,23 @@ export default function ReportDetails() {
                 ${dark ? "bg-slate-800/60 border-slate-700 divide-x divide-slate-700"
                         : "bg-slate-50 border-slate-200 divide-x divide-slate-200"}`}>
                 {[
-                  { l: "Overall Health", v: parsed.overallHealth || "–" },
-                  { l: "Risk Level",     v: parsed.riskLevel     || "–" },
-                  { l: "Risk Score",     v: `${parsed.riskScore || 0}/100` },
+                  { l: cur.health, v: parsed.overallHealth || "–" },
+                  { l: cur.risk,     v: parsed.riskLevel     || "–" },
+                  { l: cur.riskScore,     v: `${parsed.riskScore || 0}/100` },
                 ].map((s, i) => (
                   <div key={i} className="py-4 text-center px-2">
                     <p className="font-black text-sm mb-0.5" style={{ color: rColor, fontFamily: "'Sora',sans-serif" }}>{s.v}</p>
                     <p className={`text-[0.6rem] font-bold uppercase tracking-wide ${muted}`}>{s.l}</p>
                   </div>
                 ))}
+
               </div>
 
               {/* Abnormals */}
               {abnormals.length > 0 && (
                 <div>
-                  <p className="text-xs font-black text-red-400 mb-3 uppercase tracking-wide">🔴 Abnormal Values</p>
+                  <p className="text-xs font-black text-red-400 mb-3 uppercase tracking-wide">🔴 {cur.abnormalValues}</p>
+
                   <div className="space-y-2">
                     {abnormals.map((f, i) => (
                       <div key={i} className={`flex flex-col sm:flex-row gap-2 sm:items-center p-3.5 rounded-xl border
@@ -1418,7 +1556,8 @@ export default function ReportDetails() {
               {/* Lifestyle */}
               {parsed.doctorAdvice?.lifestyle?.length > 0 && (
                 <div>
-                  <p className="text-xs font-black text-blue-400 mb-3 uppercase tracking-wide">🏃 Lifestyle Suggestions</p>
+                  <p className="text-xs font-black text-blue-400 mb-3 uppercase tracking-wide">🏃 {cur.lifestyle}</p>
+
                   <ul className="space-y-2">
                     {parsed.doctorAdvice.lifestyle.map((item, i) => (
                       <li key={i} className={`flex gap-3 text-sm animate-slideInLeft p-2.5 rounded-xl
@@ -1440,16 +1579,18 @@ export default function ReportDetails() {
       {tab === "findings" && findings.length > 0 && (
         <div className="space-y-4 animate-fadeIn">
           <div className={`rounded-2xl border overflow-hidden ${card}`}>
-            <SectionHeader icon="🔬" title="All Lab Parameters"
-              subtitle={`${findings.length} values analyzed · ${abnormals.length} abnormal`} dark={dark} />
+            <SectionHeader icon="🔬" title={cur.findings}
+              subtitle={`${findings.length} ${cur.hi ? "पैरामीटर" : "values analyzed"} · ${abnormals.length} ${cur.hi ? "असामान्य" : "abnormal"}`} dark={dark} />
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className={`text-[0.6rem] font-black uppercase tracking-widest ${thBg}`}>
-                    {["Parameter", "Your Value", "Normal Range", "Status", "Level"].map(h => (
+                    {[cur.parameter, cur.value, cur.range, cur.status, cur.level].map(h => (
                       <th key={h} className="px-4 py-3.5 text-left">{h}</th>
                     ))}
                   </tr>
+
                 </thead>
                 <tbody>
                   {findings.map((f, i) => <FindingRow key={i} f={f} dark={dark} i={i} />)}
@@ -1461,7 +1602,8 @@ export default function ReportDetails() {
           {/* Doctor notes */}
           {findings.filter(f => f.doctorNote).length > 0 && (
             <div>
-              <p className={`text-xs font-black uppercase tracking-widest mb-3 ${muted}`}>🩺 Doctor's Notes</p>
+              <p className={`text-xs font-black uppercase tracking-widest mb-3 ${muted}`}>🩺 {cur.notes}</p>
+
               <div className="space-y-2.5">
                 {findings.filter(f => f.doctorNote).map((f, i) => (
                   <div key={i}
@@ -1510,10 +1652,11 @@ export default function ReportDetails() {
           </div>
 
           {/* Body Systems Radar */}
-          <BodySystemsRadar findings={findings} dark={dark} />
+          <BodySystemsRadar findings={findings} dark={dark} cur={cur} />
 
           {/* Lifestyle Impact Simulator */}
-          <LifestyleSimulator parsed={parsed} dark={dark} />
+          <LifestyleSimulator parsed={parsed} dark={dark} cur={cur} />
+
 
         </div>
       )}
@@ -1529,34 +1672,37 @@ export default function ReportDetails() {
             <div>
               <p className={`text-xs font-black uppercase tracking-wide mb-1
                 ${dark ? "text-blue-400" : "text-blue-700"}`}>
-                Personalized Visual Analysis
+                {cur.hi ? "व्यक्तिगत विजुअल विश्लेषण" : "Personalized Visual Analysis"}
               </p>
               <p className={`text-xs leading-relaxed ${dark ? "text-blue-400/70" : "text-blue-700/80"}`}>
-                These charts are generated <strong>exclusively from your report data</strong>.
-                Unlike a text AI, these visuals show your exact lab values vs. normal ranges
-                and project your health trajectory if you follow the medicine plan.
+                {cur.hi
+                  ? "ये चार्ट विशेष रूप से आपकी लैब रिपोर्ट के आधार पर बनाए गए हैं। केवल टेक्स्ट के बजाय, ये आपकी स्वास्थ्य स्थिति और दवाओं के प्रभाव को विजुअली दिखाते हैं।"
+                  : "These charts are generated exclusively from your report data. Unlike a text AI, these visuals show your exact lab values vs. normal ranges and project your health trajectory if you follow the medicine plan."}
               </p>
             </div>
+
           </div>
 
           {/* Health Status Chart */}
           {findings.length > 0 && (
-            <HealthStatusChart findings={findings} dark={dark} />
+            <HealthStatusChart findings={findings} dark={dark} cur={cur} />
           )}
 
           {/* Medicine Benefit Chart */}
           {medicines.length > 0 ? (
-            <MedicineBenefitChart medicines={medicines} dark={dark} />
+            <MedicineBenefitChart medicines={medicines} dark={dark} cur={cur} />
+
           ) : (
             <div className={`text-center py-12 rounded-2xl border ${dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
               <p className="text-3xl mb-3">📈</p>
               <p className={`font-bold text-sm ${dark ? "text-slate-300" : "text-slate-700"}`}>
-                No medicine benefit chart available
+                {cur.hi ? "कोई चार्ट उपलब्ध नहीं है" : "No medicine benefit chart available"}
               </p>
               <p className={`text-xs mt-1 ${dark ? "text-slate-500" : "text-slate-400"}`}>
-                This report has no medicine suggestions to project.
+                {cur.hi ? "इस रिपोर्ट में दवाओं के कोई सुझाव नहीं मिले हैं।" : "This report has no medicine suggestions to project."}
               </p>
             </div>
+
           )}
         </div>
       )}
@@ -1565,9 +1711,10 @@ export default function ReportDetails() {
       {tab === "advice" && parsed?.doctorAdvice && (
         <div className="space-y-4 animate-fadeIn">
           {[
-            { title: "Diet Recommendations",  items: parsed.doctorAdvice.diet,      color: "emerald", icon: "🥗", grad: "from-emerald-500/10 to-emerald-600/5", border: dark ? "border-emerald-500/20" : "border-emerald-200" },
-            { title: "Lifestyle Suggestions", items: parsed.doctorAdvice.lifestyle,  color: "blue",    icon: "🏃", grad: "from-blue-500/10 to-blue-600/5",    border: dark ? "border-blue-500/20"    : "border-blue-200" },
+            { title: cur.diet,  items: parsed.doctorAdvice.diet,      color: "emerald", icon: "🥗", grad: "from-emerald-500/10 to-emerald-600/5", border: dark ? "border-emerald-500/20" : "border-emerald-200" },
+            { title: cur.lifestyle, items: parsed.doctorAdvice.lifestyle,  color: "blue",    icon: "🏃", grad: "from-blue-500/10 to-blue-600/5",    border: dark ? "border-blue-500/20"    : "border-blue-200" },
           ].map((section, si) => section.items?.length > 0 && (
+
             <div key={si}
               className={`rounded-2xl border overflow-hidden animate-fadeInUp ${card}`}
               style={{ animationDelay: `${si * 80}ms` }}
@@ -1593,9 +1740,10 @@ export default function ReportDetails() {
           {parsed.doctorAdvice.followUp && (
             <div className={`rounded-2xl border p-5 animate-fadeInUp
               ${dark ? "bg-blue-600/5 border-blue-500/20" : "bg-blue-50 border-blue-200"}`}>
-              <p className="text-blue-500 text-xs font-black uppercase tracking-widest mb-2">📅 Follow-Up Recommendation</p>
+              <p className="text-blue-500 text-xs font-black uppercase tracking-widest mb-2">📅 {cur.followUp}</p>
               <p className={`text-sm leading-relaxed ${muted}`}>{parsed.doctorAdvice.followUp}</p>
             </div>
+
           )}
 
           {parsed.doctorAdvice.urgency && (
@@ -1606,8 +1754,9 @@ export default function ReportDetails() {
               <p className="text-4xl mb-2">
                 {parsed.doctorAdvice.urgency.toLowerCase().includes("today") ? "🚨" : "✅"}
               </p>
-              <p className={`text-xs font-semibold mb-1 ${muted}`}>Dr. MedVision recommends</p>
+              <p className={`text-xs font-semibold mb-1 ${muted}`}>{cur.hi ? "डॉ. मेडविज़न की सलाह" : "Dr. MedVision recommends"}</p>
               <p className="font-black text-sm" style={{ color: rColor }}>{parsed.doctorAdvice.urgency}</p>
+
             </div>
           )}
         </div>
@@ -1622,35 +1771,40 @@ export default function ReportDetails() {
             <span className={`text-base shrink-0 mt-0.5 ${dark ? "text-amber-400" : "text-amber-500"}`}>⚠</span>
             <div>
               <p className={`text-xs font-black uppercase tracking-wide mb-0.5 ${dark ? "text-amber-400" : "text-amber-700"}`}>
-                Medical Disclaimer
+                {cur.medDisclaimer}
               </p>
+
               <p className={`text-xs leading-relaxed ${dark ? "text-amber-400/70" : "text-amber-700"}`}>
-                These suggestions are for <strong>awareness only</strong>. Always consult your doctor before starting any medication. Do not self-medicate.
+                {cur.hi ? "ये सुझाव केवल जागरूकता के लिए हैं। कोई भी दवा शुरू करने से पहले हमेशा अपने डॉक्टर से सलाह लें।" : "These suggestions are for awareness only. Always consult your doctor before starting any medication."}
               </p>
+
             </div>
           </div>
 
           {medicines.length === 0 ? (
             <div className={`text-center py-16 rounded-2xl border ${card}`}>
               <p className="text-4xl mb-3">💊</p>
-              <p className={`font-bold text-sm mb-1.5 ${hdrTxt}`}>No medicines suggested</p>
-              <p className={`text-xs ${muted}`}>Upload a new report to receive medicine suggestions.</p>
+              <p className={`font-bold text-sm mb-1.5 ${hdrTxt}`}>{cur.noMeds}</p>
+              <p className={`text-xs ${muted}`}>{cur.hi ? "कोई दवा सुझाई नहीं गई है।" : "No medicines suggested in this report."}</p>
             </div>
+
           ) : (
             <>
               <p className={`text-xs font-semibold ${muted}`}>
-                {medicines.length} suggestion{medicines.length > 1 ? "s" : ""} based on your lab findings:
+                {medicines.length} {cur.hi ? "सुझाव मिले हैं:" : "suggestion(s) based on your lab findings:"}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {medicines.map((med, i) => <MedicineCard key={i} med={med} dark={dark} i={i} />)}
+                {medicines.map((med, i) => <MedicineCard key={i} med={med} dark={dark} i={i} cur={cur} />)}
               </div>
+
               <div className={`flex gap-3 p-4 rounded-2xl border
                 ${dark ? "bg-blue-600/5 border-blue-500/20" : "bg-blue-50 border-blue-200"}`}>
                 <span className={`text-base shrink-0 ${dark ? "text-blue-400" : "text-blue-500"}`}>ℹ</span>
                 <p className={`text-xs leading-relaxed ${dark ? "text-blue-400/70" : "text-blue-700"}`}>
-                  Take this list to your doctor. They can confirm which ones are right for you and adjust dosage as needed.
+                  {cur.medNote}
                 </p>
               </div>
+
             </>
           )}
         </div>
@@ -1672,10 +1826,10 @@ export default function ReportDetails() {
                 🗑
               </div>
               <h2 className={`font-black text-lg mb-2 ${hdrTxt}`} style={{ fontFamily: "'Sora',sans-serif" }}>
-                Delete this Report?
+                {cur.delTitle}
               </h2>
               <p className={`text-sm leading-relaxed ${muted}`}>
-                This action <strong>cannot be undone</strong>. The report and all its analysis will be permanently removed.
+                {cur.delMsg}
               </p>
             </div>
             <div className="flex gap-3">
@@ -1683,8 +1837,9 @@ export default function ReportDetails() {
                 onClick={() => setShowDelete(false)}
                 className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-200 ${btnDef}`}
               >
-                Cancel
+                {cur.cancel}
               </button>
+
               <button
                 onClick={handleDelete}
                 disabled={deleting}
@@ -1702,6 +1857,149 @@ export default function ReportDetails() {
           </div>
         </div>
       )}
+
+      {/* ══════ Printable Report (Only visible in Print) ══════ */}
+      <div className="hidden print:block printable-report mt-10">
+        <div className="space-y-8">
+          {/* Summary Section */}
+          <section className="print-section">
+            <h2 className="text-xl font-bold border-b-2 border-blue-600 pb-1 mb-4">1. Executive Summary</h2>
+            <div className={`p-4 rounded-xl border ${card}`}>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-sm font-bold">Health Status: <span style={{ color: rColor }}>{parsed?.overallHealth}</span></p>
+                  <p className="text-sm">Risk Score: <strong>{parsed?.riskScore}/100</strong> ({parsed?.riskLevel} Risk)</p>
+                </div>
+                <div className="text-right text-xs text-slate-500">
+                  Report Date: {dateStr}
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed italic">"{parsed?.patientSummary}"</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              {parsed?.goodNews && (
+                <div className="p-3 border rounded-xl bg-emerald-50">
+                  <p className="text-xs font-bold text-emerald-700 uppercase">✓ Good News</p>
+                  <p className="text-xs text-slate-700">{parsed.goodNews}</p>
+                </div>
+              )}
+              {parsed?.watchOut && (
+                <div className="p-3 border rounded-xl bg-amber-50">
+                  <p className="text-xs font-bold text-amber-700 uppercase">⚠ Key Concern</p>
+                  <p className="text-xs text-slate-700">{parsed.watchOut}</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Lab Findings Section */}
+          {findings.length > 0 && (
+            <section className="print-section">
+              <h2 className="text-xl font-bold border-b-2 border-blue-600 pb-1 mb-4">2. Detailed Laboratory Findings</h2>
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="border p-2 text-left">Parameter</th>
+                    <th className="border p-2 text-left">Your Value</th>
+                    <th className="border p-2 text-left">Normal Range</th>
+                    <th className="border p-2 text-left">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findings.map((f, i) => (
+                    <tr key={i}>
+                      <td className="border p-2 font-medium">{f.parameter}</td>
+                      <td className="border p-2 font-mono">{f.value}</td>
+                      <td className="border p-2 text-slate-500">{f.normalRange}</td>
+                      <td className={`border p-2 font-bold ${f.status === "Abnormal" ? "text-red-600" : f.status === "Borderline" ? "text-amber-600" : "text-emerald-600"}`}>
+                        {f.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {findings.some(f => f.doctorNote) && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-bold uppercase text-slate-500">Clinical Observations:</p>
+                  {findings.filter(f => f.doctorNote).map((f, i) => (
+                    <div key={i} className="text-xs p-2 border-l-2 border-blue-200 pl-3">
+                      <strong>{f.parameter}:</strong> {f.doctorNote}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Advice/Lifestyle Section */}
+          {(parsed?.doctorAdvice?.diet || parsed?.doctorAdvice?.lifestyle) && (
+            <section className="print-section">
+              <h2 className="text-xl font-bold border-b-2 border-blue-600 pb-1 mb-4">3. Recommended Actions & Advice</h2>
+              <div className="grid grid-cols-2 gap-6">
+                {parsed.doctorAdvice.diet?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold mb-2">🥗 Dietary Advice</h3>
+                    <ul className="text-xs space-y-1 list-disc pl-4">
+                      {parsed.doctorAdvice.diet.map((it, i) => <li key={i}>{it}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {parsed.doctorAdvice.lifestyle?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold mb-2">🏃 Lifestyle Changes</h3>
+                    <ul className="text-xs space-y-1 list-disc pl-4">
+                      {parsed.doctorAdvice.lifestyle.map((it, i) => <li key={i}>{it}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              {parsed.doctorAdvice.followUp && (
+                <div className="mt-4 p-3 bg-blue-50 border rounded-xl">
+                  <p className="text-xs font-bold text-blue-700 uppercase">📅 Next Steps</p>
+                  <p className="text-xs text-slate-700">{parsed.doctorAdvice.followUp}</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Medicines Section */}
+          {medicines.length > 0 && (
+            <section className="print-section">
+              <h2 className="text-xl font-bold border-b-2 border-blue-600 pb-1 mb-4">4. Suggested Medications & Supplements</h2>
+              <p className="text-[10px] text-amber-600 font-bold mb-3 italic">
+                IMPORTANT: These suggestions are based on AI analysis. Consult a doctor before starting any medication.
+              </p>
+              <div className="space-y-3">
+                {medicines.map((med, i) => (
+                  <div key={i} className="p-3 border rounded-xl">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-bold">{med.name}</p>
+                      <span className="text-[10px] font-bold border px-1.5 py-0.5 rounded bg-slate-50">{med.type}</span>
+                    </div>
+                    <p className="text-xs mb-1"><strong>Reason:</strong> {med.reason}</p>
+                    <div className="flex gap-4 text-xs italic text-slate-500">
+                      {med.dosage && <span>Dosage: {med.dosage}</span>}
+                      {med.caution && <span className="text-amber-600">Caution: {med.caution}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Verification Section */}
+          <div className="mt-auto pt-10 border-t border-dotted flex justify-between items-end">
+            <div className="text-[10px] text-slate-400">
+              <p>Generated by MedVision AI</p>
+              <p>Report ID: {id}</p>
+            </div>
+            <div className="w-24 h-24 border flex items-center justify-center text-[10px] text-slate-300">
+              Seal & Signature
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

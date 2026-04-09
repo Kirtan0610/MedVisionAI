@@ -3,12 +3,33 @@ import API from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
+
 
 const STEPS = ["Reading PDF…", "AI Analyzing…", "Building Insights…", "Saving Report…"];
 
 export default function UploadPage() {
   const { user } = useContext(AuthContext);
   const { dark } = useTheme();
+  const { lang } = useLanguage();
+  const hi = lang === "hi";
+  const t = {
+    title: hi ? "हेल्थ रिपोर्ट अपलोड करें" : "Upload Health Report",
+    subtitle: hi ? "लैब पीडीएफ अपलोड करें और डॉ. मेडविज़न एआई हर वैल्यू को स्पष्ट रूप से समझाएगा।" : "Upload a lab PDF and Dr. MedVision AI will explain every value clearly.",
+    tip: hi ? "टेक्स्ट वाले पीडीएफ के साथ सबसे अच्छा काम करता है: ब्लड टेस्ट, लिपिड प्रोफाइल, थायराइड, आदि।" : "Works best with text-based PDFs: blood tests, CBC, lipid panel, thyroid, etc.",
+    drop: hi ? "अपनी पीडीएफ यहां डालें" : "Drop your PDF here",
+    browse: hi ? "या ब्राउज़ करने के लिए क्लिक करें" : "or click to browse",
+    onlyPdf: hi ? "केवल पीडीएफ़ · अधिकतम 10 एमबी" : "PDF only · Max 10MB",
+    remove: hi ? "हटाएं" : "Remove",
+    change: hi ? "फ़ाइल बदलने के लिए क्लिक करें" : "Click to change file",
+    analyze: hi ? "एआई के साथ विश्लेषण करें" : "Analyze with AI",
+    privacy: hi ? "विश्लेषण के तुरंत बाद फाइलें हटा दी जाती हैं। केवल एन्क्विप्टेड परिणाम संग्रहीत किए जाते हैं।" : "Files are deleted immediately after analysis. Only encrypted results are stored.",
+    errOnlyPdf: hi ? "केवल पीडीएफ फाइलें स्वीकार की जाती हैं।" : "Only PDF files are accepted.",
+    errMaxSize: hi ? "अधिकतम फ़ाइल आकार 10MB है।" : "Maximum file size is 10MB.",
+    errSelect: hi ? "कृपया पहले एक पीडीएफ फाइल चुनें।" : "Please select a PDF file first.",
+  };
+
+
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -21,15 +42,15 @@ export default function UploadPage() {
 
   const handleFileSelect = (f) => {
     if (!f) return;
-    if (f.type !== "application/pdf") { setError("Only PDF files are accepted."); return; }
-    if (f.size > 10 * 1024 * 1024) { setError("Maximum file size is 10MB."); return; }
+    if (f.type !== "application/pdf") { setError(t.errOnlyPdf); return; }
+    if (f.size > 10 * 1024 * 1024) { setError(t.errMaxSize); return; }
     setError(""); setFile(f);
   };
 
   const handleDrop = (e) => { e.preventDefault(); setDragOver(false); handleFileSelect(e.dataTransfer.files[0]); };
 
   const handleUpload = async () => {
-    if (!file) { setError("Please select a PDF file first."); return; }
+    if (!file) { setError(t.errSelect); return; }
     try {
       setLoading(true); setError(""); setProgress(0); setStepIdx(0);
       const formData = new FormData();
@@ -46,8 +67,10 @@ export default function UploadPage() {
       }, 450);
 
       const res = await API.post("/reports/upload", formData, {
+        params: { language: lang },
         headers: { Authorization: `Bearer ${user.token}` },
       });
+
       clearInterval(iv);
       setProgress(100); setStepIdx(3);
       setTimeout(() => navigate(`/report/${res.data._id}`), 700);
@@ -72,9 +95,9 @@ export default function UploadPage() {
 
       {/* Header */}
       <div className="mb-6 animate-fadeInUp">
-        <p className={`text-xs font-semibold uppercase tracking-widest mb-1 text-blue-500`}>AI Analysis</p>
-        <h1 className="font-bold text-2xl sm:text-3xl mb-1.5" style={{ fontFamily:"'Sora',sans-serif" }}>Upload Health Report</h1>
-        <p className={`text-sm ${muted}`}>Upload a lab PDF and Dr. MedVision AI will explain every value clearly.</p>
+        <p className={`text-xs font-semibold uppercase tracking-widest mb-1 text-blue-500`}>{hi ? "एआई विश्लेषण" : "AI Analysis"}</p>
+        <h1 className="font-bold text-2xl sm:text-3xl mb-1.5" style={{ fontFamily:"'Sora',sans-serif" }}>{t.title}</h1>
+        <p className={`text-sm ${muted}`}>{t.subtitle}</p>
       </div>
 
       {/* Tip */}
@@ -82,7 +105,7 @@ export default function UploadPage() {
         ${dark ? "bg-blue-600/8 border-blue-500/20" : "bg-blue-50 border-blue-200"}`}>
         <span className={`text-sm shrink-0 mt-0.5 ${dark ? "text-blue-400" : "text-blue-500"}`}>ℹ</span>
         <p className={`text-xs leading-relaxed ${dark ? "text-blue-300/80" : "text-blue-700"}`}>
-          Works best with text-based PDFs: blood tests, CBC, lipid panel, thyroid, liver/kidney function reports.
+          {t.tip}
         </p>
       </div>
 
@@ -100,14 +123,14 @@ export default function UploadPage() {
         {!file ? (
           <div className="flex flex-col items-center text-center p-10 sm:p-14">
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-4 ${dark ? "bg-slate-800" : "bg-slate-100"}`}>📄</div>
-            <h3 className={`font-semibold text-sm mb-1 ${dark ? "text-slate-300" : "text-slate-700"}`}>Drop your PDF here</h3>
-            <p className={`text-xs mb-4 ${muted}`}>or click to browse</p>
+            <h3 className={`font-semibold text-sm mb-1 ${dark ? "text-slate-300" : "text-slate-700"}`}>{t.drop}</h3>
+            <p className={`text-xs mb-4 ${muted}`}>{t.browse}</p>
             <div className="flex flex-wrap gap-1.5 justify-center mb-3">
-              {["Blood Test", "CBC", "Lipid Panel", "Thyroid", "Kidney"].map(t => (
+              {(hi ? ["ब्लड टेस्ट", "CBC", "लिपिड प्रोफाइल", "थायराइड", "किडनी"] : ["Blood Test", "CBC", "Lipid Panel", "Thyroid", "Kidney"]).map(t => (
                 <span key={t} className={`px-2.5 py-1 rounded text-[0.65rem] font-medium border ${tagBg}`}>{t}</span>
               ))}
             </div>
-            <p className={`text-[0.65rem] ${sub}`}>PDF only · Max 10MB</p>
+            <p className={`text-[0.65rem] ${sub}`}>{t.onlyPdf}</p>
           </div>
         ) : (
           <div className="flex flex-col items-center p-7">
@@ -120,10 +143,10 @@ export default function UploadPage() {
               <button onClick={(e) => { e.stopPropagation(); setFile(null); }}
                 className={`shrink-0 px-2.5 py-1 rounded text-xs font-medium border transition-all duration-200
                   ${dark ? "border-slate-700 text-slate-500 hover:text-red-400 hover:border-red-500/35" : "border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200"}`}>
-                Remove
+                {t.remove}
               </button>
             </div>
-            <p className={`text-xs mt-2.5 ${sub}`}>Click to change file</p>
+            <p className={`text-xs mt-2.5 ${sub}`}>{t.change}</p>
           </div>
         )}
       </div>
@@ -159,7 +182,7 @@ export default function UploadPage() {
       {!loading && (
         <button onClick={handleUpload} disabled={!file}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
-          Analyze with AI
+          {t.analyze}
         </button>
       )}
 
@@ -168,7 +191,7 @@ export default function UploadPage() {
         ${dark ? "bg-emerald-500/5 border-emerald-500/15" : "bg-emerald-50 border-emerald-200"}`}>
         <span className={`text-sm shrink-0 ${dark ? "text-emerald-400" : "text-emerald-600"}`}>🔒</span>
         <p className={`text-xs leading-relaxed ${dark ? "text-emerald-400/70" : "text-emerald-700"}`}>
-          Files are deleted immediately after analysis. Only encrypted results are stored.
+          {t.privacy}
         </p>
       </div>
     </div>

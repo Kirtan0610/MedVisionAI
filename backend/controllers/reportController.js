@@ -16,6 +16,7 @@ function buildPrompt(textForAI, language = "en") {
   const system = isHindi
     ? `Aap Dr. MedVision hain — ek caring, experienced family physician jo hindi mein clearly baat karte hain.
 Aap patients se bilkul ghar ke doctor ki tarah baat karte hain — simple, dil se, bina daraye.
+Aapka har response Hindi mein hona chahiye (Swayam ko aur treatment ko describe karte waqt).
 Aap SIRF ek valid JSON object return karein — koi extra text, markdown, ya explanation nahi.`
     : `You are Dr. MedVision, a warm, caring, and highly experienced family physician.
 You speak directly to patients as if they are a close family member — simple, compassionate, non-alarming.
@@ -27,37 +28,37 @@ You MUST respond with ONLY a valid JSON object — no extra text, no markdown, n
 
 {
   "patientSummary": "${isHindi ? "Mrasiz ke liye warm 2-3 sentence summary hindi mein" : "A warm, 2-3 sentence summary written directly to the patient in simple terms."}",
-  "overallHealth": "Good|Fair|Needs Attention|Critical",
-  "riskLevel": "Low|Medium|High",
+  "overallHealth": "${isHindi ? "Ache|Theek|Dhyan dene ki zaroorat|Gambhir" : "Good|Fair|Needs Attention|Critical"}",
+  "riskLevel": "${isHindi ? "Kam|Madhyam|Uch" : "Low|Medium|High"}",
   "riskScore": <number 0-100>,
   "keyFindings": [
     {
       "parameter": "parameter name",
       "value": "reported value with unit",
       "normalRange": "normal range",
-      "status": "Normal|Borderline|Abnormal",
+      "status": "${isHindi ? "Normal|Borderline|Abnormal" : "Normal|Borderline|Abnormal"}",
       "doctorNote": "${isHindi ? "Simple doctor wali explanation hindi mein" : "Simple explanation a doctor gives to a family member"}"
     }
   ],
   "doctorAdvice": {
-    "diet": ["diet advice 1", "diet advice 2", "diet advice 3"],
-    "lifestyle": ["lifestyle advice 1", "lifestyle advice 2", "lifestyle advice 3"],
-    "followUp": "When and why to follow up with a doctor",
-    "urgency": "No rush|Within a month|Within a week|See doctor today"
+    "diet": ["${isHindi ? "diet advice hindi mein" : "diet advice 1"}"],
+    "lifestyle": ["${isHindi ? "lifestyle advice hindi mein" : "lifestyle advice 1"}"],
+    "followUp": "${isHindi ? "Kab aur kyu doctor se milna hai hindi mein" : "When and why to follow up with a doctor"}",
+    "urgency": "${isHindi ? "Koi jaldbaazi nahi|Ek mahine ke andar|Ek hafte ke andar|Aaj hi doctor se milein" : "No rush|Within a month|Within a week|See doctor today"}"
   },
   "recommendedMedicines": [
     {
       "name": "Medicine or supplement name",
-      "type": "Supplement|OTC Medicine|Prescription Required",
-      "reason": "Why this helps based on findings",
-      "dosage": "Typical dosage",
-      "caution": "Important caution",
+      "type": "${isHindi ? "Supplement|Ki dawai (OTC)|Doctor ki parchi zaroori" : "Supplement|OTC Medicine|Prescription Required"}",
+      "reason": "${isHindi ? "Kyu yeh help karega hindi mein" : "Why this helps based on findings"}",
+      "dosage": "${isHindi ? "Khane ka tareeka hindi mein" : "Typical dosage"}",
+      "caution": "${isHindi ? "Zaroori savdhani hindi mein" : "Important caution"}",
       "requiresConsultation": true
     }
   ],
   "goodNews": "${isHindi ? "Ek achhi baat report ke baare mein hindi mein" : "One positive thing about the report."}",
   "watchOut": "${isHindi ? "Sabse zaroori dhyan rakhne wali baat hindi mein" : "Most important thing to watch out for."}",
-  "disclaimer": "Important: Always consult your doctor before starting any medication."
+  "disclaimer": "${isHindi ? "Zaroori: Dawai shuru karne se pehle apne doctor se zaroor milein." : "Important: Always consult your doctor before starting any medication."}"
 }
 
 Medical Report:
@@ -87,6 +88,44 @@ async function runAI(textForAI, language = "en") {
   return { raw, parsed };
 }
 
+// ─── Helper: Validate if text is a medical report ───
+async function validateMedicalReport(text) {
+  try {
+    const response = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert medical document classifier. Your goal is to determine if the provided text is a legitimate medical laboratory report or diagnostic summary.
+          
+          Acceptable reports include:
+          - Blood tests (CBC, Lipid Panel, Blood Sugar, etc.)
+          - Urine tests, Liver/Kidney function tests
+          - Radiology summaries (X-Ray, MRI, CT scan impressions)
+          - Doctor's prescriptions or clinical summaries
+          
+          Reject anything that is NOT a medical health document, such as:
+          - Random essays, stories, or code
+          - Legal documents, bills, or receipts
+          - General conversations or instructions
+          
+          Respond ONLY with a JSON object: { "isMedicalReport": true/false, "confidence": 0-1 }.`
+        },
+        {
+          role: "user",
+          content: `Analyze this text for medical validity: ${text.slice(0, 3000)}`
+        }
+      ],
+      temperature: 0,
+      response_format: { type: "json_object" }
+    });
+    return JSON.parse(response.choices[0].message.content);
+  } catch (e) {
+    console.error("Validation error:", e);
+    return { isMedicalReport: true }; // Fallback to true if AI fails
+  }
+}
+
 // ─── Upload Report ───
 exports.uploadReport = async (req, res) => {
   try {
@@ -105,7 +144,11 @@ exports.uploadReport = async (req, res) => {
         let extractedText = "";
         pdfData.Pages.forEach((page) => {
           page.Texts.forEach((text) => {
-            text.R.forEach((run) => { extractedText += decodeURIComponent(run.T) + " "; });
+            text.R.forEach((run) => {
+              let decoded = run.T;
+              try { decoded = decodeURIComponent(run.T); } catch (e) {}
+              extractedText += decoded + " ";
+            });
           });
         });
         extractedText = extractedText.trim();
@@ -113,6 +156,15 @@ exports.uploadReport = async (req, res) => {
         if (!extractedText || extractedText.length < 30) {
           try { fs.unlinkSync(filePath); } catch {}
           return res.status(400).json({ message: "Could not extract text. File may be image-based or empty." });
+        }
+
+        // ─── Validation Step ───
+        const validation = await validateMedicalReport(extractedText);
+        if (!validation.isMedicalReport) {
+          try { fs.unlinkSync(filePath); } catch {}
+          return res.status(400).json({ 
+            message: "This does not appear to be a health report. Please upload a valid medical laboratory report (e.g., Blood test, Sugar test, Full Body Checkup)." 
+          });
         }
 
         const textForAI = extractedText.slice(0, 6000);

@@ -2,26 +2,37 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import ThemeToggle from "../components/ThemeToggle";
 
-const NAV = [
-  { path:"/dashboard", label:"Dashboard",      icon:"⊞" },
-  { path:"/upload",    label:"Analyze Report", icon:"⊕" },
-  { path:"/reports",   label:"My Reports",     icon:"≡" },
-  { path:"/chat",      label:"Ask Dr. AI",     icon:"◈" },
-  { path:"/tools",     label:"Health Tools",   icon:"⚙" },
-  { path:"/nearby",    label:"Nearby Places",  icon:"📍" },
-  { path:"/profile",   label:"Profile",        icon:"◎" },
-];
+
+const getNAV = (lang) => {
+  const hi = lang === "hi";
+  return [
+    { path:"/dashboard", label: hi ? "डैशबोर्ड" : "Dashboard",      icon:"⊞" },
+    { path:"/upload",    label: hi ? "रिपोर्ट जांचें" : "Analyze Report", icon:"⊕" },
+    { path:"/reports",   label: hi ? "मेरी रिपोर्ट्स" : "My Reports",     icon:"≡" },
+    { path:"/chat",      label: hi ? "डॉ. एआई" : "Ask Dr. AI",     icon:"◈" },
+    { path:"/tools",     label: hi ? "स्वास्थ्य उपकरण" : "Health Tools",   icon:"⚙" },
+    { path:"/nearby",    label: hi ? "आस-पास" : "Nearby Places",  icon:"📍" },
+    { path:"/profile",   label: hi ? "प्रोफ़ाइल" : "Profile",        icon:"◎" },
+  ];
+};
+
 
 export default function MainLayout() {
   const { logout, user } = useContext(AuthContext);
   const { dark } = useTheme();
+  const { lang, setLang } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
+  const hi = lang === "hi";
+  const NAV = getNAV(lang);
+
   const initial = user?.name?.charAt(0)?.toUpperCase() || "U";
+
   const avatarColor = "#2563EB";
 
   const bg        = dark ? "bg-slate-950"   : "bg-slate-50";
@@ -51,9 +62,10 @@ export default function MainLayout() {
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">M</div>
           <div>
             <p className={`font-semibold text-sm tracking-tight ${dark ? "text-white" : "text-slate-800"}`} style={{ fontFamily:"'Sora',sans-serif" }}>MedVision</p>
-            <p className={`text-[0.6rem] uppercase tracking-widest font-semibold ${muted}`}>AI Health</p>
+            <p className={`text-[0.6rem] uppercase tracking-widest font-semibold ${muted}`}>{hi ? "एआई स्वास्थ्य" : "AI Health"}</p>
           </div>
           <button onClick={() => setOpen(false)} className={`ml-auto lg:hidden p-1 rounded ${muted} hover:text-white`}>✕</button>
+
         </div>
 
         {/* User chip */}
@@ -62,8 +74,9 @@ export default function MainLayout() {
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">{initial}</div>
             <div className="min-w-0">
               <p className={`text-sm font-semibold truncate ${dark ? "text-slate-200" : "text-slate-800"}`}>{user?.name || "User"}</p>
-              <p className={`text-[0.65rem] font-medium ${muted}`}>Patient Account</p>
+              <p className={`text-[0.65rem] font-medium ${muted}`}>{hi ? "मरीज खाता" : "Patient Account"}</p>
             </div>
+
           </div>
         </div>
 
@@ -85,14 +98,29 @@ export default function MainLayout() {
 
         {/* Bottom actions */}
         <div className={`p-3 border-t ${divider} space-y-2`}>
-          <ThemeToggle className="w-full justify-center" />
+          <div className="flex gap-2">
+            <ThemeToggle className="flex-1 justify-center" />
+            <div className={`flex rounded-xl border overflow-hidden p-0.5 ${dark ? "border-slate-800 bg-slate-950" : "border-slate-100 bg-slate-50"}`}>
+              {[["en", "EN"], ["hi", "हिं"]].map(([v, l]) => (
+                <button key={v} onClick={() => setLang(v)}
+                  className={`px-3 py-1 text-[0.65rem] font-black rounded-lg transition-all duration-200
+                    ${lang === v 
+                      ? "bg-blue-600 text-white" 
+                      : dark ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-700"}`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
           <button onClick={() => { logout(); navigate("/login"); }}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold border transition-all duration-150
               ${dark ? "border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5"
                      : "border-slate-200 text-slate-500 hover:text-red-500 hover:border-red-300 hover:bg-red-50"}`}>
-            Sign Out
+            {hi ? "साइन आउट" : "Sign Out"}
           </button>
         </div>
+
       </aside>
 
       {/* ═══ MAIN CONTENT ═══ */}

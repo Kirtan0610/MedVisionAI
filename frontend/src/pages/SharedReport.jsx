@@ -4,6 +4,40 @@ import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 import ThemeToggle from "../components/ThemeToggle";
 
+const T = {
+  en: {
+    shared: "Shared Report",
+    lab: "Lab Values",
+    risk: "Risk",
+    good: "Good News",
+    watch: "Watch Out",
+    disclaimer: "This is a shared AI-generated report for awareness only. Always consult a qualified doctor.",
+    getStarted: "Want to analyze your own health reports?",
+    freeAcc: "Get Started Free →",
+    noFound: "This shared report was not found or the link has expired.",
+    param: "Parameter",
+    val: "Value",
+    norm: "Normal",
+    stat: "Status",
+  },
+  hi: {
+    shared: "साझा की गई रिपोर्ट",
+    lab: "लैब परिणाम",
+    risk: "जोखिम",
+    good: "अच्छी खबर",
+    watch: "सावधान रहें",
+    disclaimer: "यह केवल जागरूकता के लिए साझा की गई एआई-जनरेटेड रिपोर्ट है। हमेशा डॉक्टर से सलाह लें।",
+    getStarted: "क्या आप अपनी स्वास्थ्य रिपोर्ट का विश्लेषण करना चाहते हैं?",
+    freeAcc: "मुफ्त में शुरू करें →",
+    noFound: "यह रिपोर्ट नहीं मिली या लिंक समाप्त हो गया है।",
+    param: "पैरामीटर",
+    val: "परिणाम",
+    norm: "सामान्य",
+    stat: "स्थिति",
+  }
+};
+
+
 export default function SharedReport() {
   const { token } = useParams();
   const { dark } = useTheme();
@@ -11,12 +45,18 @@ export default function SharedReport() {
   const [parsed, setParsed] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [lang, setLang] = useState("en");
+
+  const hi = lang === "hi";
+  const t = T[lang];
+
 
   useEffect(() => {
     API.get(`/reports/shared/${token}`)
       .then(res => { setReport(res.data); try { setParsed(JSON.parse(res.data.aiResult)); } catch {} setLoading(false); })
-      .catch(() => { setError("This shared report was not found or the link has expired."); setLoading(false); });
+      .catch(() => { setError(T.en.noFound); setLoading(false); });
   }, [token]);
+
 
   const bg    = dark ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900";
   const card  = dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
@@ -32,9 +72,18 @@ export default function SharedReport() {
           <span className="font-semibold text-sm" style={{ fontFamily:"'Sora',sans-serif" }}>MedVision <span className="text-blue-500">AI</span></span>
         </Link>
         <div className="flex items-center gap-2">
-          <span className={`text-xs px-2.5 py-1 rounded border ${dark ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-500"}`}>Shared Report</span>
+          <div className={`flex rounded-lg border overflow-hidden text-[0.6rem] font-black ${dark ? "border-slate-800" : "border-slate-200"}`}>
+            {["en", "hi"].map(v => (
+              <button key={v} onClick={() => setLang(v)}
+                className={`px-2 py-1 transition-all duration-200
+                  ${lang === v ? "bg-blue-600 text-white" : dark ? "bg-slate-900 text-slate-500" : "bg-white text-slate-400"}`}>
+                {v === "en" ? "EN" : "हिं"}
+              </button>
+            ))}
+          </div>
           <ThemeToggle />
         </div>
+
       </nav>
 
       <div className="max-w-3xl mx-auto p-4 sm:p-6">
@@ -45,24 +94,27 @@ export default function SharedReport() {
         ) : error ? (
           <div className={`text-center py-20 rounded-xl border mt-6 ${card}`}>
             <p className="text-4xl mb-3">🔗</p>
-            <p className="font-semibold text-red-400 mb-2">{error}</p>
-            <Link to="/register" className="mt-4 inline-block px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700">Create Free Account →</Link>
+            <p className="font-semibold text-red-400 mb-2">{hi ? T.hi.noFound : error}</p>
+            <Link to="/register" className="mt-4 inline-block px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700">{t.freeAcc}</Link>
           </div>
+
         ) : (
           <div className="space-y-4 mt-4 animate-fadeInUp">
             {/* Header */}
             <div className={`rounded-xl border p-5 ${card}`}>
               <div className="flex flex-wrap gap-2 mb-3">
-                <span className="text-[0.65rem] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border text-blue-400 bg-blue-500/10 border-blue-500/20">Shared Report</span>
+                <span className="text-[0.65rem] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border text-blue-400 bg-blue-500/10 border-blue-500/20">{t.shared}</span>
                 {parsed?.riskLevel && (
                   <span className="text-[0.65rem] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border"
                     style={{ color:rColor, background:`${rColor}15`, borderColor:`${rColor}35` }}>
-                    {parsed.riskLevel} Risk
+                    {parsed.riskLevel} {t.risk}
                   </span>
                 )}
               </div>
+
               <h1 className="font-bold text-lg mb-1" style={{ fontFamily:"'Sora',sans-serif" }}>{report?.originalFileName}</h1>
-              <p className={`text-xs ${muted}`}>{new Date(report?.createdAt).toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+              <p className={`text-xs ${muted}`}>{new Date(report?.createdAt).toLocaleDateString(hi ? "hi-IN" : "en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+
             </div>
 
             {/* Doctor summary */}
@@ -82,13 +134,15 @@ export default function SharedReport() {
             {parsed?.keyFindings?.length > 0 && (
               <div className={`rounded-xl border overflow-hidden ${card}`}>
                 <div className="px-5 py-3 border-b border-inherit">
-                  <p className="font-semibold text-sm" style={{ fontFamily:"'Sora',sans-serif" }}>Lab Values</p>
+                  <p className="font-semibold text-sm" style={{ fontFamily:"'Sora',sans-serif" }}>{t.lab}</p>
                 </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className={`text-[0.6rem] uppercase tracking-wide ${dark ? "bg-slate-800 text-slate-500" : "bg-slate-50 text-slate-400"}`}>
-                      <tr>{["Parameter","Value","Normal","Status"].map(h => <th key={h} className="px-4 py-2.5 text-left font-semibold">{h}</th>)}</tr>
+                      <tr>{[t.param, t.val, t.norm, t.stat].map(h => <th key={h} className="px-4 py-2.5 text-left font-semibold">{h}</th>)}</tr>
                     </thead>
+
                     <tbody>
                       {parsed.keyFindings.map((f, i) => {
                         const s = f.status === "Normal" ? "text-emerald-400" : f.status === "Borderline" ? "text-amber-400" : "text-red-400";
@@ -109,21 +163,24 @@ export default function SharedReport() {
 
             {/* Good news / watch out */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {parsed?.goodNews && <div className={`rounded-xl border-l-4 border-emerald-500 p-4 ${card}`}><p className="text-emerald-500 text-xs font-semibold mb-1">✓ Good News</p><p className={`text-sm ${muted}`}>{parsed.goodNews}</p></div>}
-              {parsed?.watchOut  && <div className={`rounded-xl border-l-4 border-amber-500 p-4 ${card}`}><p className="text-amber-500 text-xs font-semibold mb-1">⚠ Watch Out</p><p className={`text-sm ${muted}`}>{parsed.watchOut}</p></div>}
+              {parsed?.goodNews && <div className={`rounded-xl border-l-4 border-emerald-500 p-4 ${card}`}><p className="text-emerald-500 text-xs font-semibold mb-1">✓ {t.good}</p><p className={`text-sm ${muted}`}>{parsed.goodNews}</p></div>}
+              {parsed?.watchOut  && <div className={`rounded-xl border-l-4 border-amber-500 p-4 ${card}`}><p className="text-amber-500 text-xs font-semibold mb-1">⚠ {t.watch}</p><p className={`text-sm ${muted}`}>{parsed.watchOut}</p></div>}
             </div>
+
 
             {/* Disclaimer + CTA */}
             <div className={`text-xs p-3.5 rounded-xl border ${dark ? "bg-amber-500/5 border-amber-500/15 text-amber-600" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
-              ⚠ This is a shared AI-generated report for awareness only. Always consult a qualified doctor for medical decisions.
+              ⚠ {t.disclaimer}
             </div>
 
+
             <div className={`text-center p-6 rounded-xl border ${card}`}>
-              <p className={`text-sm mb-3 ${muted}`}>Want to analyze your own health reports?</p>
+              <p className={`text-sm mb-3 ${muted}`}>{t.getStarted}</p>
               <Link to="/register" className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200">
-                Get Started Free →
+                {t.freeAcc}
               </Link>
             </div>
+
           </div>
         )}
       </div>

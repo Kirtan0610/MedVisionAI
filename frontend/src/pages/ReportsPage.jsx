@@ -3,6 +3,8 @@ import API from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
+
 
 /* ── Risk Badge ── */
 function RiskBadge({ level }) {
@@ -37,7 +39,7 @@ function HealthPill({ health, dark }) {
 }
 
 /* ── Report Card ── */
-function ReportCard({ r, dark, delay }) {
+function ReportCard({ r, dark, delay, onDelete, hi }) {
   let parsed = null;
   try { parsed = JSON.parse(r.aiResult); } catch {}
   const risk      = parsed?.riskLevel;
@@ -53,115 +55,132 @@ function ReportCard({ r, dark, delay }) {
   const urgencyUrgent = urgency?.toLowerCase().includes("today") || urgency?.toLowerCase().includes("immediately");
 
   return (
-    <Link
-      to={`/report/${r._id}`}
-      className="block group animate-fadeInUp"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className={`relative rounded-2xl border overflow-hidden transition-all duration-300
-        group-hover:-translate-y-1 group-hover:shadow-xl cursor-pointer
-        ${dark
-          ? "bg-slate-900 border-slate-800 group-hover:border-slate-600 group-hover:shadow-blue-900/30"
-          : "bg-white border-slate-200 group-hover:border-blue-200 group-hover:shadow-slate-200/80"
-        }`}
+    <div className="relative group animate-fadeInUp" style={{ animationDelay: `${delay}ms` }}>
+      <Link
+        to={`/report/${r._id}`}
+        className="block"
       >
-        {/* Top accent bar */}
-        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${rColor}80, transparent)` }} />
+        <div className={`relative rounded-2xl border overflow-hidden transition-all duration-300
+          group-hover:-translate-y-1 group-hover:shadow-xl cursor-pointer
+          ${dark
+            ? "bg-slate-900 border-slate-800 group-hover:border-slate-600 group-hover:shadow-blue-900/30"
+            : "bg-white border-slate-200 group-hover:border-blue-200 group-hover:shadow-slate-200/80"
+          }`}
+        >
+          {/* Top accent bar */}
+          <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${rColor}80, transparent)` }} />
 
-        <div className="p-5">
-          {/* Header */}
-          <div className="flex items-start gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 shadow-sm
-              ${dark ? "bg-slate-800" : "bg-slate-100"}`}
-            >
-              📄
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-2 justify-between flex-wrap mb-1">
-                <p className={`text-sm font-bold truncate max-w-[200px] leading-tight
-                  ${dark ? "text-slate-100" : "text-slate-800"}`}
-                >
-                  {r.originalFileName}
-                </p>
-                <RiskBadge level={risk} />
+          <div className="p-5">
+            {/* Header */}
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 shadow-sm
+                ${dark ? "bg-slate-800" : "bg-slate-100"}`}
+              >
+                📄
               </div>
-              <p className={`text-xs ${dark ? "text-slate-500" : "text-slate-400"}`}>
-                {new Date(r.createdAt).toLocaleDateString("en-IN", {
-                  day: "2-digit", month: "short", year: "numeric"
-                })}
-                {" · "}
-                {new Date(r.createdAt).toLocaleTimeString("en-IN", {
-                  hour: "2-digit", minute: "2-digit"
-                })}
-              </p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2 justify-between flex-wrap mb-1">
+                  <p className={`text-sm font-bold truncate max-w-[180px] leading-tight
+                    ${dark ? "text-slate-100" : "text-slate-800"}`}
+                  >
+                    {r.originalFileName}
+                  </p>
+                  <RiskBadge level={risk} />
+                </div>
+                <p className={`text-xs ${dark ? "text-slate-500" : "text-slate-400"}`}>
+                  {new Date(r.createdAt).toLocaleDateString("en-IN", {
+                    day: "2-digit", month: "short", year: "numeric"
+                  })}
+                  {" · "}
+                  {new Date(r.createdAt).toLocaleTimeString("en-IN", {
+                    hour: "2-digit", minute: "2-digit"
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Stats row */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <HealthPill health={health} dark={dark} />
+            {/* Stats row */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <HealthPill health={health} dark={dark} />
+              {score > 0 && (
+                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+                  ${dark ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500"}`}
+                >
+                  <span className="font-bold" style={{ color: rColor }}>{score}</span>
+                  <span>/100 risk</span>
+                </span>
+              )}
+              {medCount > 0 && (
+                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+                  ${dark ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600"}`}
+                >
+                  💊 {medCount} med{medCount > 1 ? "s" : ""}
+                </span>
+              )}
+              {abnCount > 0 && (
+                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+                  ${dark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+                >
+                  ⚠ {abnCount} abnormal
+                </span>
+              )}
+            </div>
+
+            {/* Risk Score Bar */}
             {score > 0 && (
-              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-                ${dark ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500"}`}
-              >
-                <span className="font-bold" style={{ color: rColor }}>{score}</span>
-                <span>/100 risk</span>
-              </span>
+              <div className={`h-1 rounded-full mb-4 ${dark ? "bg-slate-800" : "bg-slate-100"}`}>
+                <div
+                  className="h-full rounded-full transition-all duration-700 meter-fill"
+                  style={{ width: `${score}%`, background: `linear-gradient(90deg, ${rColor}80, ${rColor})` }}
+                />
+              </div>
             )}
-            {medCount > 0 && (
-              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-                ${dark ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600"}`}
-              >
-                💊 {medCount} med{medCount > 1 ? "s" : ""}
-              </span>
-            )}
-            {abnCount > 0 && (
-              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-                ${dark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
-              >
-                ⚠ {abnCount} abnormal
-              </span>
-            )}
-          </div>
 
-          {/* Risk Score Bar */}
-          {score > 0 && (
-            <div className={`h-1 rounded-full mb-4 ${dark ? "bg-slate-800" : "bg-slate-100"}`}>
-              <div
-                className="h-full rounded-full transition-all duration-700 meter-fill"
-                style={{ width: `${score}%`, background: `linear-gradient(90deg, ${rColor}80, ${rColor})` }}
-              />
-            </div>
-          )}
+            {/* Summary */}
+            <p className={`text-xs leading-relaxed line-clamp-2 mb-4 ${dark ? "text-slate-400" : "text-slate-500"}`}>
+              {summary || "No summary available."}
+            </p>
 
-          {/* Summary */}
-          <p className={`text-xs leading-relaxed line-clamp-2 mb-4 ${dark ? "text-slate-400" : "text-slate-500"}`}>
-            {summary || "No summary available."}
-          </p>
-
-          {/* Footer */}
-          <div className={`flex items-center justify-between pt-3 border-t
-            ${dark ? "border-slate-800" : "border-slate-100"}`}
-          >
-            {urgencyUrgent ? (
-              <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full animate-pulse">
-                🚨 {urgency}
-              </span>
-            ) : urgency ? (
-              <span className={`text-[0.65rem] font-semibold ${dark ? "text-slate-500" : "text-slate-400"}`}>
-                {urgency}
-              </span>
-            ) : <span />}
-            <span className={`flex items-center gap-1 text-xs font-semibold transition-all duration-200
-              group-hover:gap-2 text-blue-500`}
+            {/* Footer */}
+            <div className={`flex items-center justify-between pt-3 border-t
+              ${dark ? "border-slate-800" : "border-slate-100"}`}
             >
-              View details
-              <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
-            </span>
+              {urgencyUrgent ? (
+                <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full animate-pulse">
+                  🚨 {urgency}
+                </span>
+              ) : urgency ? (
+                <span className={`text-[0.6rem] font-semibold ${dark ? "text-slate-500" : "text-slate-400"}`}>
+                  {urgency}
+                </span>
+              ) : <span />}
+              <span className={`flex items-center gap-1 text-xs font-semibold transition-all duration-200
+                group-hover:gap-2 text-blue-500 mr-2`}
+              >
+                {hi ? "विवरण देखें" : "View details"}
+                <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+              </span>
+
+            </div>
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      
+      {/* Delete Button - Absolute positioned in card but not inside Link to avoid bubbing */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDelete(r._id);
+        }}
+        className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center 
+          opacity-0 group-hover:opacity-100 transition-all duration-200 z-10
+          ${dark ? "bg-red-500/10 hover:bg-red-500/20 text-red-400" : "bg-red-50 hover:bg-red-100 text-red-500"}`}
+        title="Delete report"
+      >
+        <span className="text-sm">🗑</span>
+      </button>
+    </div>
   );
 }
 
@@ -182,11 +201,43 @@ function StatCard({ label, val, color, icon, dark }) {
 export default function ReportsPage() {
   const { user } = useContext(AuthContext);
   const { dark } = useTheme();
+  const { lang } = useLanguage();
   const [reports, setReports]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState("All");
   const [search, setSearch]     = useState("");
   const [sortBy, setSortBy]     = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const [deletingId, setDeletingId] = useState(null);
+
+  const hi = lang === "hi";
+
+  const t = {
+    title: hi ? "मेरी रिपोर्ट्स" : "My Reports",
+    newAnalysis: hi ? "+ नई जांच" : "+ New Analysis",
+    all: hi ? "सभी" : "All",
+    low: hi ? "कम जोखिम" : "Low Risk",
+    medium: hi ? "मध्यम" : "Medium",
+    high: hi ? "उच्च जोखिम" : "High Risk",
+    total: hi ? "कुल" : "Total",
+    search: hi ? "फ़ाइल नाम से खोजें..." : "Search by filename...",
+    newest: hi ? "नया पहले" : "Newest First",
+    oldest: hi ? "पुराना पहले" : "Oldest First",
+    risk: hi ? "उच्च जोखिम" : "Highest Risk",
+    noReports: hi ? "कोई रिपोर्ट नहीं मिली" : "No reports yet",
+    uploadFirst: hi ? "पहली रिपोर्ट अपलोड करें →" : "Upload First Report →",
+    deleteConfirm: hi ? "क्या आप वाकई इस रिपोर्ट को हटाना चाहते हैं?" : "Are you sure you want to delete this report?",
+    showing: hi ? "दिखा रहा है" : "Showing",
+    of: hi ? "में से" : "of",
+    reports: hi ? "रिपोर्ट्स" : "reports",
+    viewDetails: hi ? "विवरण देखें" : "View details",
+    delete: hi ? "हटाएं" : "Delete",
+    lastUpdated: hi ? "पिछला अपडेट" : "Last updated",
+    abnormal: hi ? "असामान्य" : "abnormal",
+    riskLbl: hi ? "जोखिम" : "risk",
+  };
+
 
   useEffect(() => {
     if (user?.token) {
@@ -195,6 +246,24 @@ export default function ReportsPage() {
         .catch(() => setLoading(false));
     }
   }, [user]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm(t.deleteConfirm)) return;
+
+    setDeletingId(id);
+    try {
+      await API.delete(`/reports/${id}`, { headers: { Authorization: `Bearer ${user.token}` } });
+      setReports(reports.filter(r => r._id !== id));
+    } catch (err) {
+      alert("Error deleting report");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, search, sortBy]);
 
   const counts = { All: reports.length, Low: 0, Medium: 0, High: 0 };
   reports.forEach(r => {
@@ -239,17 +308,18 @@ export default function ReportsPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-8 animate-fadeInUp">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1 text-blue-500">Health Records</p>
+          <p className="text-xs font-bold uppercase tracking-widest mb-1 text-blue-500">{hi ? "स्वास्थ्य रिकॉर्ड" : "Health Records"}</p>
           <h1 className="font-black text-3xl leading-tight" style={{ fontFamily: "'Sora',sans-serif" }}>
-            My Reports
+            {t.title}
           </h1>
           {!loading && reports.length > 0 && (
             <p className={`text-sm mt-1 ${dark ? "text-slate-400" : "text-slate-500"}`}>
-              {reports.length} report{reports.length > 1 ? "s" : ""} · Last updated{" "}
-              {new Date(Math.max(...reports.map(r => new Date(r.createdAt)))).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+              {reports.length} {t.reports} · {t.lastUpdated}{" "}
+              {new Date(Math.max(...reports.map(r => new Date(r.createdAt)))).toLocaleDateString(hi ? "hi-IN" : "en-IN", { day: "numeric", month: "short" })}
             </p>
           )}
         </div>
+
         <Link
           to="/upload"
           className="sm:ml-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm text-white
@@ -257,8 +327,9 @@ export default function ReportsPage() {
             transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40
             hover:-translate-y-0.5 whitespace-nowrap"
         >
-          <span className="text-base">+</span> New Analysis
+          {t.newAnalysis}
         </Link>
+
       </div>
 
       {/* ── Summary Stats ── */}
@@ -266,11 +337,12 @@ export default function ReportsPage() {
         <div className={`grid grid-cols-4 rounded-2xl border mb-6 overflow-hidden animate-fadeInUp
           ${dark ? "bg-slate-900 border-slate-800 divide-x divide-slate-800" : "bg-white border-slate-200 divide-x divide-slate-100"}`}
         >
-          <StatCard label="Total" val={counts.All} color="text-blue-500" icon="📊" dark={dark} />
-          <StatCard label="Low Risk" val={counts.Low} color="text-emerald-500" icon="✅" dark={dark} />
-          <StatCard label="Medium" val={counts.Medium} color="text-amber-500" icon="⚠️" dark={dark} />
-          <StatCard label="High Risk" val={counts.High} color="text-red-500" icon="🚨" dark={dark} />
+          <StatCard label={t.total} val={counts.All} color="text-blue-500" icon="📊" dark={dark} />
+          <StatCard label={t.low} val={counts.Low} color="text-emerald-500" icon="✅" dark={dark} />
+          <StatCard label={t.medium} val={counts.Medium} color="text-amber-500" icon="⚠️" dark={dark} />
+          <StatCard label={t.high} val={counts.High} color="text-red-500" icon="🚨" dark={dark} />
         </div>
+
       )}
 
       {/* ── Search + Sort ── */}
@@ -281,7 +353,7 @@ export default function ReportsPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by filename…"
+              placeholder={t.search}
               className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all duration-200
                 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
                 ${dark
@@ -289,6 +361,7 @@ export default function ReportsPage() {
                   : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
                 }`}
             />
+
           </div>
           <select
             value={sortBy}
@@ -300,10 +373,11 @@ export default function ReportsPage() {
                 : "bg-white border-slate-200 text-slate-600"
               }`}
           >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="risk">Highest Risk</option>
+            <option value="newest">{t.newest}</option>
+            <option value="oldest">{t.oldest}</option>
+            <option value="risk">{t.risk}</option>
           </select>
+
         </div>
       )}
 
@@ -311,11 +385,12 @@ export default function ReportsPage() {
       {!loading && reports.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6 animate-fadeInUp">
           {[
-            { key: "All",    label: "All Reports", count: counts.All },
-            { key: "Low",    label: "Low Risk",    count: counts.Low },
-            { key: "Medium", label: "Medium Risk", count: counts.Medium },
-            { key: "High",   label: "High Risk",   count: counts.High },
+            { key: "All",    label: t.all, count: counts.All },
+            { key: "Low",    label: t.low,    count: counts.Low },
+            { key: "Medium", label: t.medium, count: counts.Medium },
+            { key: "High",   label: t.high,   count: counts.High },
           ].map(f => (
+
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
@@ -346,13 +421,14 @@ export default function ReportsPage() {
         >
           <span className="text-5xl mb-4">{reports.length === 0 ? "📭" : "🔍"}</span>
           <p className={`font-bold text-lg mb-2 ${dark ? "text-slate-200" : "text-slate-700"}`}>
-            {reports.length === 0 ? "No reports yet" : `No ${filter === "All" ? "" : filter + " risk"} reports found`}
+            {reports.length === 0 ? t.noReports : `${hi ? "कोई " : "No "}${filter === "All" ? "" : (hi ? t[filter.toLowerCase()] : filter) + " "} ${hi ? "रिपोर्ट नहीं मिली" : "reports found"}`}
           </p>
           <p className={`text-sm mb-6 max-w-xs ${dark ? "text-slate-500" : "text-slate-400"}`}>
             {reports.length === 0
-              ? "Upload your first medical report to get an AI-powered health analysis."
-              : "Try adjusting your filter or search term."}
+              ? (hi ? "AI-आधारित स्वास्थ्य विश्लेषण प्राप्त करने के लिए अपनी पहली मेडिकल रिपोर्ट अपलोड करें।" : "Upload your first medical report to get an AI-powered health analysis.")
+              : (hi ? "कृपया अपनी खोज बदलें।" : "Try adjusting your filter or search term.")}
           </p>
+
           {reports.length === 0 && (
             <Link
               to="/upload"
@@ -360,20 +436,81 @@ export default function ReportsPage() {
                 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600
                 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
             >
-              Upload First Report →
+              {t.uploadFirst}
             </Link>
+
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((r, i) => (
-            <ReportCard key={r._id} r={r} dark={dark} delay={i * 60} />
-          ))}
-          <p className={`text-center text-xs pt-2 ${dark ? "text-slate-600" : "text-slate-400"}`}>
-            Showing {filtered.length} of {reports.length} report{reports.length > 1 ? "s" : ""}
-          </p>
+          {filtered
+            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+            .map((r, i) => (
+              <ReportCard 
+                key={r._id} 
+                r={r} 
+                dark={dark} 
+                delay={i * 60} 
+                onDelete={handleDelete}
+                hi={hi}
+              />
+            ))}
+          
+          <div className={`flex flex-col items-center gap-4 pt-6 pb-2 border-t mt-8 ${dark ? "border-slate-800" : "border-slate-100"}`}>
+            {/* Pagination Controls */}
+            {filtered.length > itemsPerPage && (
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200
+                    ${currentPage === 1 
+                      ? "opacity-30 cursor-not-allowed" 
+                      : dark 
+                        ? "border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-500" 
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                >
+                  ←
+                </button>
+                
+                {Array.from({ length: Math.ceil(filtered.length / itemsPerPage) }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-9 h-9 rounded-xl border flex items-center justify-center text-xs font-bold transition-all duration-200
+                      ${currentPage === i + 1
+                        ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/25"
+                        : dark
+                          ? "border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-500"
+                          : "border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-300"}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+
+                <button
+                  disabled={currentPage === Math.ceil(filtered.length / itemsPerPage)}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200
+                    ${currentPage === Math.ceil(filtered.length / itemsPerPage)
+                      ? "opacity-30 cursor-not-allowed"
+                      : dark
+                        ? "border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-500"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                >
+                  →
+                </button>
+              </div>
+            )}
+
+            <p className={`text-[0.65rem] font-bold uppercase tracking-widest ${dark ? "text-slate-600" : "text-slate-400"}`}>
+               {t.showing} {Math.min(filtered.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filtered.length, currentPage * itemsPerPage)} {t.of} {filtered.length} {t.reports}
+            </p>
+
+          </div>
         </div>
       )}
+
     </div>
   );
 }

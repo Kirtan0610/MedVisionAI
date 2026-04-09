@@ -120,3 +120,110 @@ a, button, input, textarea { transition: all 0.18s ease !important; }
 
 /* ─── Drop zone ─── */
 .drop-zone { transition: all 0.25s ease; cursor: pointer; }
+
+/* ─── Print Styles ─── */
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+  }
+
+  /* Hide UI elements and Screen Content */
+  nav, .sidebar, button, .action-bar, .no-print, 
+  [role="navigation"], [role="banner"],
+  #root > div > main > div:not(.printable-report),
+  .flex.items-center.gap-2.mb-5.animate-fadeInDown,
+  .p-1.rounded-2xl.border.mb-5.animate-fadeInUp,
+  .relative.rounded-2xl.border.overflow-hidden.mb-5.animate-fadeInUp,
+  .rounded-2xl.border.p-5.mb-5.animate-fadeInUp { 
+    display: none !important; 
+  }
+
+  /* Show ONLY the printable report */
+  .printable-report {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 100% !important;
+  }
+
+  /* Force light mode colors for printing */
+  .dark {
+    background: white !important;
+    color: black !important;
+  }
+
+  .dark .bg-slate-900, .dark .bg-slate-800, .dark .bg-slate-950 {
+    background: white !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .dark .text-slate-100, .dark .text-slate-200, .dark .text-slate-300, .dark .text-slate-400 {
+    color: #1e293b !important;
+  }
+
+  /* Show all tabs content during print */
+  .animate-fadeIn {
+    display: block !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Expand all hidden sections */
+  .max-w-4xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Clean up cards */
+  .rounded-2xl, .rounded-xl {
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Ensure text is readable */
+  p, span, li, td, th {
+    color: #334155 !important;
+  }
+
+  h1, h2, h3, h4 {
+    color: #0f172a !important;
+  }
+
+  /* Charts and visual elements */
+  svg {
+    max-width: 100% !important;
+  }
+
+  /* Add a "Confidential Report" watermark or header */
+  body::before {
+    content: "MedVision AI - Personalized Medical Analysis Report";
+    display: block;
+    text-align: center;
+    font-size: 14pt;
+    font-weight: 800;
+    margin-bottom: 2rem;
+    color: #2563eb;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 0.5rem;
+  }
+
+  body::after {
+    content: "Disclaimer: This AI-generated report is for informational purposes only. Always consult a qualified healthcare professional.";
+    display: block;
+    text-align: center;
+    font-size: 8pt;
+    margin-top: 2rem;
+    color: #64748b;
+    font-style: italic;
+  }
+}
