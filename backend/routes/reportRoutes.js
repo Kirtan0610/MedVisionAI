@@ -14,11 +14,18 @@ const {
 } = require("../controllers/reportController");
 
 const os = require("os");
+const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Use /tmp for Vercel/serverless, or 'uploads' for local development
+    // Use /tmp for Vercel, or 'uploads' for other platforms (Render, etc.)
     const uploadDir = process.env.VERCEL ? os.tmpdir() : "uploads/";
+    
+    // Ensure the directory exists if not in /tmp
+    if (uploadDir === "uploads/" && !fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`),
